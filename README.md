@@ -1,73 +1,130 @@
 # 2ch-core
 
-2ch-core 是 2ch.tw 的核心後端服務，負責匿名即時討論平台的主要業務邏輯與系統能力。本專案以 TypeScript 為產品主線，採用 Agent 架構，目標是在可快速上線的前提下，保留長期演進與拆分的彈性。
+2ch-core 是 2ch.tw 的核心後端服務，負責匿名即時討論平台的主要業務邏輯與系統能力。  
+本專案刻意對齊日本 2ch / 5ch 的設計哲學：**簡單、線性、耐用**，以「可實際上線並長期演進」為第一優先。
 
-這不是範例專案，也不是技術展示用 repo，而是一個以「能活下來、能撐住、能持續改進」為前提所設計的產品核心。
+這不是範例專案，也不是技術展示用 repo，而是一個已可實際運作的匿名留言板核心。
 
 ---
 
 ## 專案定位
 
-- 匿名即時討論平台的核心後端
+- 匿名即時討論平台後端核心
 - 高雜訊使用者輸入的防禦與正規化
-- 即時互動（未來包含 WebSocket / SSE）
-- 可演進的內容治理與防濫用機制
+- 2ch-style thread / reply（僅一層回覆）
+- 可演進的防濫用與治理機制
+
+---
+
+## 設計哲學（重要）
+
+- **只支援一層 reply，不支援 reply 的 reply**
+- 系統不追蹤「回誰」，引用交由文化（例如 `>>123`）
+- 資料模型以「線性 + 穩定」為優先，而非巢狀結構
+- 寧願簡單耐用，也不提早為未來過度設計
+
+---
+
+## 目前功能（v0.1）
+
+- 匿名發文（Thread / Reply）
+- Thread + one-level replies（2ch 正統模式）
+- 基本 Guard（長度限制、rate limit）
+- 真實來源 IP Hash（proxy-ready）
+- REST API（Express）
+- PostgreSQL persistence
+- Docker 開發環境
 
 ---
 
 ## 技術主線
 
-核心語言
+### 語言
+- **TypeScript（主線）**：所有同步請求與核心邏輯
+- Python（未來）：僅用於非同步或批次任務，不進主請求路徑
 
-- TypeScript（主線）：所有同步請求路徑與核心邏輯皆以 TypeScript 實作
-- Python（未來支線）：僅用於非同步、離線或批次任務，不進入同步請求路徑
-
-基礎設施
-
+### 基礎設施
 - Runtime：Node.js
-- 主資料庫：PostgreSQL
-- 快取與即時狀態：Redis
+- Database：PostgreSQL
+- Cache / Realtime（規劃）：Redis
+- Container：Docker
 
 ---
 
 ## 架構概念
 
-本專案採用 Agent-based 設計，每個 Agent 專注於單一責任，並透過明確介面協作。
+專案採用「責任明確分層」的 Agent-based 結構，但不追求形式上的複雜度。
 
-- API Agent：處理 HTTP 介面與輸入正規化
-- Domain Agent：承載業務規則與狀態轉移
-- Persistence Agent：資料存取與交易控制
-- Realtime Agent：即時推播與連線狀態
-- Guard Agent：防濫用、限流與基礎治理
+- API：HTTP 介面與請求協調
+- Guard：防濫用、限流、輸入正規化
+- Persistence：資料存取
+- Realtime（預留）：即時推播
+- Domain（預留）：業務規則
 
-詳細設計請參考 AGENTS.md。
+---
+
+## API 概覽
+
+### POST /posts
+建立主貼或回覆。
+
+```json
+{
+  "content": "Hello world",
+  "parentId": 1
+}
+```
+
+- `parentId` 為選填
+- 不提供即時驗證 parent 是否存在（對齊 2ch 行為）
+
+---
+
+### GET /posts
+取得最新主貼（threads）。
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "content": "Thread",
+      "parentId": null
+    }
+  ]
+}
+```
+
+---
+
+## 開發與啟動
+
+```bash
+npm install
+docker compose up -d
+npx tsx src/main.ts
+```
 
 ---
 
 ## 專案階段
 
-- v0：單一服務、TypeScript-only，可實際上線
-- v1：引入 Redis 強化即時性與保護機制
-- v1.5：新增 Python Worker（非同步）
-- v2：視流量與需求拆分為多服務
+- **v0.1**：單一服務、可實際上線（目前）
+- v1：引入 Redis 強化保護與即時能力
+- v1.5：非同步 Worker（Python）
+- v2：依需求拆分為多服務
 
 ---
 
 ## 開發原則
 
-1. 先完成，再優化
-2. 架構為上線服務，不為炫技存在
-3. 主請求路徑只允許一種語言與心智模型
-4. 所有設計皆需能被替換與重構
-
----
-
-## 狀態
-
-目前為專案初始化階段，尚未提供對外服務。
+1. 先能跑、再變好
+2. 架構服務於產品，而非炫技
+3. 主請求路徑保持單一心智模型
+4. 所有設計皆可被替換與演進
 
 ---
 
 ## 授權
 
-授權方式尚未決定，暫不開放使用或散佈。
+尚未決定授權方式，暫不開放使用或散佈。

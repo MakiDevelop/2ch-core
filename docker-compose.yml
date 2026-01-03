@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  api:
+    container_name: 2ch-core-api
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "${APP_PORT}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      APP_PORT: ${APP_PORT}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    container_name: 2ch-core-postgres
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-2ch}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    container_name: 2ch-core-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:

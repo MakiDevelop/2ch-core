@@ -51,6 +51,7 @@ Thumbs.db
 
 tmp/
 temp/
+.eslintcache
 
 # =========================
 # Database
@@ -58,6 +59,7 @@ temp/
 
 *.sqlite
 *.sqlite3
+*.sql
 
 # =========================
 # Docker
