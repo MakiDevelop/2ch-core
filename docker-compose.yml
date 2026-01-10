@@ -1,4 +1,5 @@
-version: "3.9"
+# 2ch-core Docker Compose - Development
+# 开发环境配置，包含热重载和调试功能
 
 services:
   api:
@@ -7,38 +8,93 @@ services:
     working_dir: /app
     volumes:
       - ./:/app
+      - /app/node_modules  # 防止宿主机覆盖容器的 node_modules
     command: sh -c "npm install && npm run dev"
     ports:
-      - "${APP_PORT}:3000"
+      - "${APP_PORT:-3000}:3000"
     environment:
-      NODE_ENV: ${NODE_ENV}
-      APP_PORT: ${APP_PORT}
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/2ch
+      REDIS_URL: redis://redis:6379
+      ADMIN_IP_HASHES: ${ADMIN_IP_HASHES:-}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - 2ch-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   postgres:
     container_name: 2ch-core-postgres
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-2ch}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - 2ch-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    shm_size: 128mb
 
   redis:
     container_name: 2ch-core-redis
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - 2ch-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  2ch-network:
+    driver: bridge
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
