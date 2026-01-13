@@ -14,6 +14,7 @@ import {
   lockPostHandler,
   unlockPostHandler,
   moderateByIpHandler,
+  systemStatusHandler,
 } from "./agents/api";
 
 const app = express();
@@ -22,8 +23,9 @@ const app = express();
 app.set('etag', false);
 
 // middleware: set no-cache headers for all dynamic content
+// AI Browser / Client optimized: explicit max-age=0
 app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   res.setHeader('Surrogate-Control', 'no-store');
@@ -33,12 +35,32 @@ app.use((req, res, next) => {
 // middleware: parse json body
 app.use(bodyParser.json());
 
+// middleware: add Clear-Site-Data header for HTML pages to force cache clear
+// This must be BEFORE express.static to apply to static HTML files
+app.use((req, res, next) => {
+  // Only add Clear-Site-Data for HTML page requests (not API endpoints)
+  if (req.path.endsWith('.html') || req.path === '/' ||
+      req.path.match(/^\/boards\/[^\/]+\/threads$/) ||
+      req.path.match(/^\/posts\/\d+$/)) {
+    res.setHeader('Clear-Site-Data', '"cache"');
+  }
+  next();
+});
+
+// middleware: serve static files from public folder
+app.use(express.static('public', {
+  etag: false,
+  lastModified: false,
+  maxAge: 0
+}));
+
 // health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
 // admin API (管理员功能)
+app.get("/admin/system-status", systemStatusHandler);
 app.post("/admin/posts/:id/delete", deletePostHandler);
 app.post("/admin/posts/:id/lock", lockPostHandler);
 app.post("/admin/posts/:id/unlock", unlockPostHandler);

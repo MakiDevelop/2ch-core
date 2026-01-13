@@ -4,6 +4,7 @@ export {
   listPostsHandler,
   getThreadHandler,
   getRepliesHandler,
+  createReplyHandler,
 } from "./posts";
 
 export {
@@ -17,4 +18,5 @@ export {
   lockPostHandler,
   unlockPostHandler,
   moderateByIpHandler,
+  systemStatusHandler,
 } from "./admin";

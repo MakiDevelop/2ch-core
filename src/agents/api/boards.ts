@@ -8,14 +8,22 @@ import {
 import { checkCreatePost } from "../guard/postGuard";
 import crypto from "crypto";
 
-function getIpHash(req: Request): string {
+function getRealIp(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
   const ip =
     typeof forwarded === "string"
       ? forwarded.split(",")[0].trim()
       : req.ip ?? "unknown";
 
+  return ip;
+}
+
+function getIpHash(ip: string): string {
   return crypto.createHash("sha256").update(ip).digest("hex");
+}
+
+function getUserAgent(req: Request): string {
+  return req.headers["user-agent"] || "unknown";
 }
 
 /**
@@ -93,7 +101,7 @@ export async function getBoardThreadsHandler(req: Request, res: Response) {
 export async function createBoardThreadHandler(req: Request, res: Response) {
   try {
     const { slug } = req.params;
-    const { content } = req.body;
+    const { content, title, authorName } = req.body;
 
     // 验证板块是否存在
     const board = await getBoardBySlug(slug);
@@ -102,7 +110,20 @@ export async function createBoardThreadHandler(req: Request, res: Response) {
       return;
     }
 
-    const ipHash = getIpHash(req);
+    // 驗證標題
+    if (!title || typeof title !== "string" || title.trim().length === 0) {
+      res.status(400).json({ error: "標題為必填" });
+      return;
+    }
+
+    if (title.length > 80) {
+      res.status(400).json({ error: "標題長度不得超過 80 字" });
+      return;
+    }
+
+    const realIp = getRealIp(req);
+    const ipHash = getIpHash(realIp);
+    const userAgent = getUserAgent(req);
 
     // Guard 检查
     const guardResult = checkCreatePost({
@@ -119,8 +140,12 @@ export async function createBoardThreadHandler(req: Request, res: Response) {
     const thread = await createPost({
       content: guardResult.content,
       ipHash,
+      realIp,
+      userAgent,
       parentId: null,
       boardId: board.id,
+      title: title.trim(),
+      authorName: authorName?.trim() || "名無しさん",
     });
 
     res.status(201).json(thread);

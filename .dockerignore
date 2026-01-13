@@ -42,7 +42,6 @@ Thumbs.db
 *~
 
 # Database
-db/migrations/*.sql
 db/backup
 
 # Test

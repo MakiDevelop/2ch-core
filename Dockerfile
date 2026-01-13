@@ -16,6 +16,9 @@ RUN npm ci
 COPY src ./src
 COPY tsconfig.json ./
 
+# 复制静态文件
+COPY public ./public
+
 # 如果使用 TypeScript 编译
 # RUN npm run build
 
@@ -30,12 +33,19 @@ WORKDIR /app
 # 复制 package files
 COPY package*.json ./
 
-# 仅安装生产依赖
+# 安装生产依赖 + tsx (用于运行 TypeScript)
 RUN npm ci --only=production && \
+    npm install tsx && \
     npm cache clean --force
 
 # 从 builder 复制源代码（如果不使用编译，直接复制 src）
 COPY --from=builder /app/src ./src
+
+# 复制数据库迁移文件
+COPY db ./db
+
+# 复制静态文件
+COPY public ./public
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S nodejs && \

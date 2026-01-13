@@ -1,0 +1,20 @@
+# 2ch.tw robots.txt
+# 允許搜尋引擎索引公開內容，但排除管理與敏感頁面
+
+User-agent: *
+
+# 允許索引討論串與板塊
+Allow: /
+Allow: /boards/
+Allow: /posts/
+
+# 禁止索引管理與敏感頁面
+Disallow: /admin/
+Disallow: /system-status.html
+Disallow: /terms.html
+
+# 禁止索引 API endpoints
+Disallow: /health
+
+# Sitemap (如有需要可以在此處添加)
+# Sitemap: https://2ch.tw/sitemap.xml

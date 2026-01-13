@@ -1,0 +1,235 @@
+// 2ch.tw Board Page Script
+
+// Version for cache busting
+const APP_VERSION = '20260113';
+
+// Get board slug from URL
+const getBoardSlug = () => {
+    const path = window.location.pathname;
+    const match = path.match(/\/boards\/([^\/]+)/);
+    return match ? match[1] : null;
+};
+
+const boardSlug = getBoardSlug();
+const API_BASE = '';
+
+// Format date
+const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}天前`;
+    if (hours > 0) return `${hours}小時前`;
+    if (minutes > 0) return `${minutes}分鐘前`;
+    return '剛剛';
+};
+
+// Truncate content
+const truncate = (text, length = 150) => {
+    if (text.length <= length) return text;
+    return text.substring(0, length) + '...';
+};
+
+// Load board info and threads
+const loadBoard = async () => {
+    // Show loading skeleton
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads?v=${APP_VERSION}`);
+        if (!response.ok) {
+            throw new Error('無法載入板塊');
+        }
+
+        const data = await response.json();
+
+        // Update page title and header
+        const pageTitleEl = document.getElementById('page-title');
+        const boardNameEl = document.getElementById('board-name');
+        const boardDescEl = document.getElementById('board-description');
+
+        if (pageTitleEl) pageTitleEl.textContent = `${data.board.name} - 2ch.tw`;
+        if (boardNameEl) boardNameEl.textContent = data.board.name;
+        if (boardDescEl) boardDescEl.textContent = data.board.description || '';
+
+        // Render threads
+        renderThreads(data.threads);
+    } catch (error) {
+        console.error('Error loading board:', error);
+        showError('載入失敗');
+    }
+};
+
+// Show loading skeleton
+const showLoading = () => {
+    const container = document.getElementById('threads-list');
+    if (!container) return;
+
+    container.innerHTML = '<p class="loading">載入中...</p>';
+};
+
+// Show error state
+const showError = (message = '載入失敗') => {
+    const container = document.getElementById('threads-list');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div style="padding: 48px 24px; text-align: center;">
+            <p style="color: var(--text-secondary, #999); margin-bottom: 16px;">${escapeHtml(message)}</p>
+            <button onclick="loadBoard()" style="padding: 10px 20px; background: transparent; color: var(--accent, #5b8ef4); border: 1px solid var(--accent, #5b8ef4); border-radius: 8px; cursor: pointer; font-size: 15px;">重試</button>
+        </div>
+    `;
+};
+
+// Render threads list
+const renderThreads = (threads) => {
+    const container = document.getElementById('threads-list');
+    if (!container) return;
+
+    // Empty state
+    if (!threads || threads.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 80px 24px; text-align: center;">
+                <p style="font-size: 17px; color: var(--text-secondary, #999); margin-bottom: 8px;">目前尚無討論串</p>
+                <p style="font-size: 14px; color: var(--text-tertiary, #666);">發一篇開始對話吧</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Render thread cards
+    const threadsHTML = threads.map(thread => `
+        <a href="/posts/${thread.id}" class="thread-item" style="display: block; text-decoration: none; color: inherit;">
+            <div class="thread-content">
+                <h4 class="thread-title">${escapeHtml(thread.title || '無標題')}</h4>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; color: var(--text-secondary, #999);">
+                    <span class="thread-author">${escapeHtml(thread.authorName || '名無しさん')}</span>
+                    <span>•</span>
+                    <span class="thread-time">${formatDate(thread.createdAt)}</span>
+                    <span style="margin-left: auto; color: var(--accent, #5b8ef4); font-weight: 500;">${thread.replyCount || 0} 回應</span>
+                </div>
+            </div>
+        </a>
+    `).join('');
+
+    container.innerHTML = threadsHTML;
+};
+
+// Escape HTML to prevent XSS
+const escapeHtml = (text) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+};
+
+// Handle post form submission
+const postForm = document.getElementById('post-form');
+const postTitle = document.getElementById('post-title');
+const postAuthor = document.getElementById('post-author');
+const postContent = document.getElementById('post-content');
+const submitBtn = document.getElementById('submit-btn');
+const postMessage = document.getElementById('post-message');
+const charCount = document.querySelector('.char-count');
+
+// Update character count
+if (postContent && charCount) {
+    postContent.addEventListener('input', () => {
+        const length = postContent.value.length;
+        charCount.textContent = `${length} / 10000`;
+    });
+}
+
+if (postForm) {
+    postForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const title = postTitle.value.trim();
+    const authorName = postAuthor.value.trim();
+    const content = postContent.value.trim();
+
+    if (!title) {
+        showMessage('請輸入標題', 'error');
+        return;
+    }
+
+    if (!content) {
+        showMessage('請輸入內容', 'error');
+        return;
+    }
+
+    // Disable form
+    submitBtn.disabled = true;
+    submitBtn.textContent = '發送中...';
+    postMessage.textContent = '';
+
+    try {
+        const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title,
+                content,
+                authorName: authorName || '名無しさん',
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || '發文失敗');
+        }
+
+        const data = await response.json();
+
+        // Success
+        showMessage('發文成功！', 'success');
+        postTitle.value = '';
+        postAuthor.value = '';
+        postContent.value = '';
+        charCount.textContent = '0 / 10000';
+
+        // Reload threads after 1 second
+        setTimeout(() => {
+            loadBoard();
+            postMessage.textContent = '';
+        }, 1000);
+
+    } catch (error) {
+        console.error('Error posting:', error);
+        showMessage(error.message || '發文失敗，請稍後再試', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '發表';
+    }
+    });
+}
+
+// Show message
+const showMessage = (text, type = 'info') => {
+    if (!postMessage) return;
+
+    postMessage.textContent = text;
+    postMessage.className = `message ${type}`;
+    postMessage.hidden = false;
+};
+
+// Refresh button
+const refreshBtn = document.getElementById('refresh-btn');
+if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+        loadBoard();
+    });
+}
+
+// Initial load
+if (!boardSlug) {
+    showError('無效的板塊');
+} else {
+    loadBoard();
+}

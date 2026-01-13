@@ -8,14 +8,22 @@ import {
 import { checkCreatePost } from "../guard/postGuard";
 import crypto from "crypto";
 
-function getIpHash(req: Request): string {
+function getRealIp(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];
   const ip =
     typeof forwarded === "string"
       ? forwarded.split(",")[0].trim()
       : req.ip ?? "unknown";
 
+  return ip;
+}
+
+function getIpHash(ip: string): string {
   return crypto.createHash("sha256").update(ip).digest("hex");
+}
+
+function getUserAgent(req: Request): string {
+  return req.headers["user-agent"] || "unknown";
 }
 
 /**
@@ -107,6 +115,61 @@ export async function getThreadHandler(req: Request, res: Response) {
     }
 
     res.json(thread);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * POST /posts/:id/replies
+ * Create a reply to a thread
+ */
+export async function createReplyHandler(req: Request, res: Response) {
+  try {
+    const threadId = Number(req.params.id);
+    const { content, authorName } = req.body;
+
+    // 验证 thread ID
+    if (!Number.isInteger(threadId) || threadId <= 0) {
+      res.status(400).json({ error: "invalid thread id" });
+      return;
+    }
+
+    // 先验证主题是否存在
+    const thread = await getThreadById(threadId);
+    if (!thread) {
+      res.status(404).json({ error: "thread not found" });
+      return;
+    }
+
+    const realIp = getRealIp(req);
+    const ipHash = getIpHash(realIp);
+    const userAgent = getUserAgent(req);
+
+    // Guard 检查
+    const guardResult = checkCreatePost({
+      content,
+      ipHash,
+    });
+
+    if (!guardResult.ok) {
+      res.status(guardResult.status).json({ error: guardResult.error });
+      return;
+    }
+
+    // 创建回复（指定 parentId）
+    const reply = await createPost({
+      content: guardResult.content,
+      ipHash,
+      realIp,
+      userAgent,
+      parentId: threadId,
+      boardId: thread.boardId ?? null,
+      authorName: authorName?.trim() || "名無しさん",
+    });
+
+    res.status(201).json(reply);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "internal server error" });

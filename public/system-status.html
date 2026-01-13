@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>系統狀態 - 2ch.tw</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .subtitle {
+            color: #999;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .refresh-info {
+            background: #1a1a1a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid #5b8ef4;
+        }
+
+        .refresh-info .time {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .refresh-btn {
+            background: #5b8ef4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #4a7de3;
+        }
+
+        .refresh-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #2a2a2a;
+        }
+
+        .section h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: #ffffff;
+            border-bottom: 2px solid #2a2a2a;
+            padding-bottom: 8px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: #252525;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 3px solid #5b8ef4;
+        }
+
+        .stat-card.warning {
+            border-left-color: #f4a742;
+        }
+
+        .stat-card.error {
+            border-left-color: #f44242;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .stat-unit {
+            font-size: 14px;
+            color: #999;
+            margin-left: 4px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .table th {
+            background: #252525;
+            color: #999;
+            font-weight: 500;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .table td {
+            color: #e0e0e0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-running {
+            background: rgba(91, 142, 244, 0.2);
+            color: #5b8ef4;
+        }
+
+        .status-error {
+            background: rgba(244, 66, 66, 0.2);
+            color: #f44242;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 18px;
+        }
+
+        .error-message {
+            background: rgba(244, 66, 66, 0.1);
+            border: 1px solid #f44242;
+            color: #f44242;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #5b8ef4;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.warning {
+            background: #f4a742;
+        }
+
+        .progress-fill.error {
+            background: #f44242;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .refresh-info {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 系統狀態監控</h1>
+        <p class="subtitle">2ch.tw System Status Dashboard</p>
+
+        <div class="refresh-info">
+            <div class="time">最後更新：<span id="last-update">-</span></div>
+            <button class="refresh-btn" id="refresh-btn" onclick="loadSystemStatus()">重新整理</button>
+        </div>
+
+        <div id="error-container"></div>
+        <div id="content">
+            <div class="loading">載入中...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        // 格式化時間
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+        }
+
+        // 格式化檔案大小
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 載入系統狀態
+        async function loadSystemStatus() {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const errorContainer = document.getElementById('error-container');
+            const content = document.getElementById('content');
+
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '載入中...';
+            errorContainer.innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/system-status`);
+
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        throw new Error('權限不足：您沒有訪問此頁面的權限');
+                    }
+                    throw new Error(`HTTP ${response.status}: 無法載入系統狀態`);
+                }
+
+                const data = await response.json();
+                renderSystemStatus(data);
+                document.getElementById('last-update').textContent = formatTime(data.timestamp);
+
+            } catch (error) {
+                console.error('Error loading system status:', error);
+                errorContainer.innerHTML = `
+                    <div class="error-message">
+                        <strong>錯誤：</strong> ${error.message}
+                    </div>
+                `;
+                content.innerHTML = '';
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '重新整理';
+            }
+        }
+
+        // 渲染系統狀態
+        function renderSystemStatus(data) {
+            const { system, process, database, containers } = data;
+
+            const memUsagePercent = parseFloat(system.memoryUsagePercent);
+            const memUsageClass = memUsagePercent > 90 ? 'error' : memUsagePercent > 70 ? 'warning' : '';
+
+            const html = `
+                <!-- 系統資訊 -->
+                <div class="section">
+                    <h2>系統資訊</h2>
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div class="stat-label">主機名稱</div>
+                            <div class="stat-value" style="font-size: 18px;">${system.hostname}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">系統運行時間</div>
+                            <div class="stat-value" style="font-size: 18px;">${system.uptimeFormatted}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">平台 / 架構</div>
+                            <div class="stat-value" style="font-size: 18px;">${system.platform} / ${system.arch}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">CPU 核心數</div>
+                            <div class="stat-value">${system.cpus} <span class="stat-unit">cores</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 負載與記憶體 -->
+                <div class="section">
+                    <h2>負載與記憶體</h2>
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div class="stat-label">系統負載 (1/5/15 分鐘)</div>
+                            <div class="stat-value" style="font-size: 16px;">
+                                ${system.loadavg.map(l => l.toFixed(2)).join(' / ')}
+                            </div>
+                        </div>
+                        <div class="stat-card ${memUsageClass}">
+                            <div class="stat-label">記憶體使用率</div>
+                            <div class="stat-value">${system.memoryUsagePercent}<span class="stat-unit">%</span></div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${memUsageClass}" style="width: ${system.memoryUsagePercent}%"></div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">已用記憶體</div>
+                            <div class="stat-value" style="font-size: 16px;">
+                                ${formatBytes(system.usedMemory)} / ${formatBytes(system.totalMemory)}
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">可用記憶體</div>
+                            <div class="stat-value" style="font-size: 18px;">${formatBytes(system.freeMemory)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Node.js 程序資訊 -->
+                <div class="section">
+                    <h2>Node.js 程序</h2>
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Node 版本</div>
+                            <div class="stat-value" style="font-size: 18px;">${process.nodeVersion}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">程序 ID</div>
+                            <div class="stat-value">${process.pid}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">程序運行時間</div>
+                            <div class="stat-value" style="font-size: 18px;">${process.uptimeFormatted}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">程序記憶體 (RSS)</div>
+                            <div class="stat-value" style="font-size: 18px;">${formatBytes(process.memoryUsage.rss)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 資料庫狀態 -->
+                <div class="section">
+                    <h2>資料庫狀態</h2>
+                    ${database.connected ? `
+                        <div class="grid">
+                            <div class="stat-card">
+                                <div class="stat-label">資料庫名稱</div>
+                                <div class="stat-value" style="font-size: 18px;">${database.database}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">資料庫大小</div>
+                                <div class="stat-value" style="font-size: 18px;">${database.size}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">討論版數量</div>
+                                <div class="stat-value">${database.stats.boards}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">討論串總數</div>
+                                <div class="stat-value">${database.stats.threads}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">回覆總數</div>
+                                <div class="stat-value">${database.stats.replies}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">文章總數</div>
+                                <div class="stat-value">${database.stats.posts}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">今日新文章</div>
+                                <div class="stat-value">${database.stats.todayPosts}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">今日新討論串</div>
+                                <div class="stat-value">${database.stats.todayThreads}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">已刪除文章</div>
+                                <div class="stat-value">${database.stats.deletedPosts}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">管理記錄</div>
+                                <div class="stat-value">${database.stats.moderationLogs}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; font-size: 13px; color: #666;">
+                            PostgreSQL ${database.version.split(' ')[1]}
+                        </div>
+                    ` : `
+                        <div class="stat-card error">
+                            <div class="stat-label">連線狀態</div>
+                            <div class="stat-value" style="font-size: 18px; color: #f44242;">連線失敗</div>
+                        </div>
+                    `}
+                </div>
+
+                <!-- 容器狀態 -->
+                <div class="section">
+                    <h2>容器狀態</h2>
+                    ${containers.error ? `
+                        <div class="stat-card error">
+                            <div class="stat-label">容器資訊</div>
+                            <div class="stat-value" style="font-size: 16px; color: #f44242;">${containers.error}</div>
+                        </div>
+                    ` : `
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>容器名稱</th>
+                                    <th>狀態</th>
+                                    <th>運行狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${containers.containers.map(c => `
+                                    <tr>
+                                        <td>${c.name}</td>
+                                        <td>${c.status}</td>
+                                        <td><span class="status-badge status-running">${c.state}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `}
+                </div>
+            `;
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // 初始載入
+        loadSystemStatus();
+
+        // 每 30 秒自動重新整理
+        setInterval(loadSystemStatus, 30000);
+    </script>
+</body>
+</html>

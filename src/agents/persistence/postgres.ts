@@ -8,14 +8,20 @@ export type Post = {
   createdAt: Date;
   parentId: number | null;
   boardId?: number | null;
+  title?: string | null;
+  authorName: string;
 };
 
 export type CreatePostParams = {
   content: string;
   status?: number;
   ipHash: string;
+  realIp: string;
+  userAgent: string;
   parentId?: number | null;
   boardId?: number | null;
+  title?: string | null;
+  authorName?: string;
 };
 
 export type ThreadDetail = {
@@ -28,6 +34,9 @@ export type ThreadDetail = {
   replyCount: number;
   lastReplyAt: Date | null;
   boardId?: number | null;
+  title?: string | null;
+  authorName: string;
+  board?: { slug: string; name: string } | null;
 };
 
 export type Board = {
@@ -46,29 +55,40 @@ const pool = new Pool({
 });
 
 export async function createPost(params: CreatePostParams): Promise<Post> {
-  const { content, status, ipHash, parentId, boardId } = params;
+  const {
+    content,
+    status,
+    ipHash,
+    realIp,
+    userAgent,
+    parentId,
+    boardId,
+    title,
+    authorName,
+  } = params;
 
-  if (status === undefined) {
-    const result = await pool.query(
-      "INSERT INTO posts (content, ip_hash, parent_id, board_id) VALUES ($1, $2, $3, $4) RETURNING id, content, status, ip_hash, created_at, parent_id, board_id",
-      [content, ipHash, parentId ?? null, boardId ?? null],
-    );
-    const row = result.rows[0];
-    return {
-      id: row.id,
-      content: row.content,
-      status: row.status,
-      ipHash: row.ip_hash,
-      createdAt: row.created_at,
-      parentId: row.parent_id,
-      boardId: row.board_id,
-    };
-  }
+  const finalAuthorName = authorName || "名無しさん";
+  const finalStatus = status ?? 0;
 
   const result = await pool.query(
-    "INSERT INTO posts (content, status, ip_hash, parent_id, board_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, content, status, ip_hash, created_at, parent_id, board_id",
-    [content, status, ipHash, parentId ?? null, boardId ?? null],
+    `INSERT INTO posts (
+      content, status, ip_hash, real_ip, user_agent,
+      parent_id, board_id, title, author_name
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name`,
+    [
+      content,
+      finalStatus,
+      ipHash,
+      realIp,
+      userAgent,
+      parentId ?? null,
+      boardId ?? null,
+      title ?? null,
+      finalAuthorName,
+    ],
   );
+
   const row = result.rows[0];
   return {
     id: row.id,
@@ -78,12 +98,14 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
     createdAt: row.created_at,
     parentId: row.parent_id,
     boardId: row.board_id,
+    title: row.title,
+    authorName: row.author_name,
   };
 }
 
 export async function listPosts(limit: number): Promise<Post[]> {
   const result = await pool.query(
-    "SELECT id, content, status, ip_hash, created_at FROM posts ORDER BY id DESC LIMIT $1",
+    "SELECT id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name FROM posts ORDER BY id DESC LIMIT $1",
     [limit],
   );
 
@@ -93,6 +115,10 @@ export async function listPosts(limit: number): Promise<Post[]> {
     status: row.status,
     ipHash: row.ip_hash,
     createdAt: row.created_at,
+    parentId: row.parent_id,
+    boardId: row.board_id,
+    title: row.title,
+    authorName: row.author_name,
   }));
 }
 
@@ -105,12 +131,15 @@ export async function getThreadById(
   const result = await pool.query(
     `SELECT
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id,
+      p.title, p.author_name, p.board_id,
+      b.slug as board_slug, b.name as board_name,
       COUNT(r.id) as reply_count,
       MAX(r.created_at) as last_reply_at
     FROM posts p
     LEFT JOIN posts r ON r.parent_id = p.id
+    LEFT JOIN boards b ON b.id = p.board_id
     WHERE p.id = $1
-    GROUP BY p.id`,
+    GROUP BY p.id, b.slug, b.name`,
     [id],
   );
 
@@ -126,6 +155,12 @@ export async function getThreadById(
     ipHash: row.ip_hash,
     createdAt: row.created_at,
     parentId: row.parent_id,
+    title: row.title,
+    authorName: row.author_name,
+    boardId: row.board_id,
+    board: row.board_slug
+      ? { slug: row.board_slug, name: row.board_name }
+      : null,
     replyCount: parseInt(row.reply_count, 10),
     lastReplyAt: row.last_reply_at,
   };
@@ -140,7 +175,7 @@ export async function getReplies(
   offset: number,
 ): Promise<Post[]> {
   const result = await pool.query(
-    `SELECT id, content, status, ip_hash, created_at, parent_id
+    `SELECT id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name
     FROM posts
     WHERE parent_id = $1
     ORDER BY id ASC
@@ -155,6 +190,9 @@ export async function getReplies(
     ipHash: row.ip_hash,
     createdAt: row.created_at,
     parentId: row.parent_id,
+    boardId: row.board_id,
+    title: row.title,
+    authorName: row.author_name,
   }));
 }
 
@@ -228,6 +266,7 @@ export async function getBoardThreads(
   const result = await pool.query(
     `SELECT
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id, p.board_id,
+      p.title, p.author_name,
       COUNT(r.id) as reply_count,
       MAX(r.created_at) as last_reply_at
     FROM posts p
@@ -246,10 +285,35 @@ export async function getBoardThreads(
     ipHash: row.ip_hash,
     createdAt: row.created_at,
     parentId: row.parent_id,
+    title: row.title,
+    authorName: row.author_name,
+    boardId: row.board_id,
     replyCount: parseInt(row.reply_count, 10),
     lastReplyAt: row.last_reply_at,
-    boardId: row.board_id,
   }));
+}
+
+/**
+ * 辅助函数：写入管理操作日志
+ */
+async function logModerationAction(
+  action: string,
+  targetType: string,
+  targetId: string,
+  adminIpHash: string,
+  reason?: string,
+  metadata?: any,
+): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO moderation_logs (action, target_type, target_id, admin_ip_hash, reason, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [action, targetType, targetId, adminIpHash, reason || null, metadata ? JSON.stringify(metadata) : null],
+    );
+  } catch (err) {
+    console.error(`[AUDIT] Failed to log moderation action:`, err);
+    // 不中断主要操作流程
+  }
 }
 
 /**
@@ -266,8 +330,16 @@ export async function deletePost(
     [postId],
   );
 
-  // 记录管理操作（可选：未来可以创建 moderation_logs 表）
   if (result.rowCount && result.rowCount > 0) {
+    // 写入审计日志
+    await logModerationAction(
+      'delete',
+      'post',
+      postId.toString(),
+      adminIpHash,
+      reason,
+    );
+
     console.log(
       `[ADMIN] Post ${postId} deleted by ${adminIpHash}. Reason: ${reason}`,
     );
@@ -280,11 +352,21 @@ export async function deletePost(
 /**
  * 管理功能：锁定主题（禁止回复）
  */
-export async function lockPost(postId: number): Promise<boolean> {
+export async function lockPost(postId: number, adminIpHash: string): Promise<boolean> {
   const result = await pool.query(
     `UPDATE posts SET status = 1 WHERE id = $1 AND parent_id IS NULL RETURNING id`,
     [postId],
   );
+
+  if (result.rowCount && result.rowCount > 0) {
+    await logModerationAction(
+      'lock',
+      'post',
+      postId.toString(),
+      adminIpHash,
+      'Thread locked',
+    );
+  }
 
   return result.rowCount !== null && result.rowCount > 0;
 }
@@ -292,11 +374,21 @@ export async function lockPost(postId: number): Promise<boolean> {
 /**
  * 管理功能：解锁主题
  */
-export async function unlockPost(postId: number): Promise<boolean> {
+export async function unlockPost(postId: number, adminIpHash: string): Promise<boolean> {
   const result = await pool.query(
     `UPDATE posts SET status = 0 WHERE id = $1 AND parent_id IS NULL RETURNING id`,
     [postId],
   );
+
+  if (result.rowCount && result.rowCount > 0) {
+    await logModerationAction(
+      'unlock',
+      'post',
+      postId.toString(),
+      adminIpHash,
+      'Thread unlocked',
+    );
+  }
 
   return result.rowCount !== null && result.rowCount > 0;
 }
@@ -317,6 +409,16 @@ export async function deletePostsByIpHash(
   const count = result.rowCount ?? 0;
 
   if (count > 0) {
+    // 写入审计日志
+    await logModerationAction(
+      'ban_ip',
+      'ip_hash',
+      ipHash,
+      adminIpHash,
+      reason,
+      { affected_count: count },
+    );
+
     console.log(
       `[ADMIN] ${count} posts from ${ipHash} deleted by ${adminIpHash}. Reason: ${reason}`,
     );
@@ -339,4 +441,59 @@ export async function isThreadLocked(threadId: number): Promise<boolean> {
   }
 
   return result.rows[0].status === 1;
+}
+
+/**
+ * 獲取資料庫統計資訊（用於系統狀態監控）
+ */
+export async function getSystemStats(): Promise<any> {
+  try {
+    // 獲取資料庫連線狀態
+    const connResult = await pool.query('SELECT version(), current_database(), current_user');
+
+    // 獲取各資料表統計
+    const boardsCount = await pool.query('SELECT COUNT(*) as count FROM boards');
+    const postsCount = await pool.query('SELECT COUNT(*) as count FROM posts WHERE status = 0');
+    const deletedPostsCount = await pool.query('SELECT COUNT(*) as count FROM posts WHERE status = 2');
+    const threadsCount = await pool.query('SELECT COUNT(*) as count FROM posts WHERE parent_id IS NULL AND status = 0');
+    const repliesCount = await pool.query('SELECT COUNT(*) as count FROM posts WHERE parent_id IS NOT NULL AND status = 0');
+    const moderationLogsCount = await pool.query('SELECT COUNT(*) as count FROM moderation_logs');
+
+    // 獲取今日統計
+    const todayPosts = await pool.query(
+      `SELECT COUNT(*) as count FROM posts WHERE created_at >= CURRENT_DATE`
+    );
+    const todayThreads = await pool.query(
+      `SELECT COUNT(*) as count FROM posts WHERE parent_id IS NULL AND created_at >= CURRENT_DATE`
+    );
+
+    // 資料庫大小
+    const dbSize = await pool.query(
+      `SELECT pg_size_pretty(pg_database_size(current_database())) as size`
+    );
+
+    return {
+      connected: true,
+      version: connResult.rows[0].version,
+      database: connResult.rows[0].current_database,
+      user: connResult.rows[0].current_user,
+      size: dbSize.rows[0].size,
+      stats: {
+        boards: parseInt(boardsCount.rows[0].count),
+        posts: parseInt(postsCount.rows[0].count),
+        deletedPosts: parseInt(deletedPostsCount.rows[0].count),
+        threads: parseInt(threadsCount.rows[0].count),
+        replies: parseInt(repliesCount.rows[0].count),
+        moderationLogs: parseInt(moderationLogsCount.rows[0].count),
+        todayPosts: parseInt(todayPosts.rows[0].count),
+        todayThreads: parseInt(todayThreads.rows[0].count),
+      },
+    };
+  } catch (error) {
+    console.error('[DB-STATS] Error:', error);
+    return {
+      connected: false,
+      error: 'Failed to get database stats',
+    };
+  }
 }
