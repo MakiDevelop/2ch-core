@@ -6,6 +6,7 @@ import {
   listPostsHandler,
   getThreadHandler,
   getRepliesHandler,
+  createReplyHandler,
   listBoardsHandler,
   getBoardThreadsHandler,
   createBoardThreadHandler,
@@ -16,6 +17,18 @@ import {
 } from "./agents/api";
 
 const app = express();
+
+// middleware: disable ETag
+app.set('etag', false);
+
+// middleware: set no-cache headers for all dynamic content
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
 
 // middleware: parse json body
 app.use(bodyParser.json());
@@ -40,6 +53,7 @@ app.post("/boards/:slug/threads", createBoardThreadHandler);
 app.get("/posts", listPostsHandler);
 app.post("/posts", createPostHandler);
 app.get("/posts/:id/replies", getRepliesHandler); // 必须在 /posts/:id 之前
+app.post("/posts/:id/replies", createReplyHandler); // 回覆討論串
 app.get("/posts/:id", getThreadHandler);
 
 // start server
