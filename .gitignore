@@ -60,6 +60,7 @@ temp/
 *.sqlite
 *.sqlite3
 *.sql
+!db/migrations/*.sql
 
 # =========================
 # Docker

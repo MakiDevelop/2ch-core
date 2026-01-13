@@ -128,18 +128,17 @@ export async function listPosts(limit: number): Promise<Post[]> {
 export async function getThreadById(
   id: number,
 ): Promise<ThreadDetail | null> {
+  // 使用子查詢取代 self-join
   const result = await pool.query(
     `SELECT
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id,
       p.title, p.author_name, p.board_id,
       b.slug as board_slug, b.name as board_name,
-      COUNT(r.id) as reply_count,
-      MAX(r.created_at) as last_reply_at
+      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count,
+      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id) as last_reply_at
     FROM posts p
-    LEFT JOIN posts r ON r.parent_id = p.id
     LEFT JOIN boards b ON b.id = p.board_id
-    WHERE p.id = $1
-    GROUP BY p.id, b.slug, b.name`,
+    WHERE p.id = $1`,
     [id],
   );
 
@@ -200,14 +199,13 @@ export async function getReplies(
  * 获取所有板块列表（含主题数统计）
  */
 export async function listBoards(): Promise<Board[]> {
+  // 使用子查詢取代 JOIN + GROUP BY
   const result = await pool.query(
     `SELECT
       b.id, b.slug, b.name, b.description, b.display_order, b.is_active, b.created_at,
-      COUNT(p.id) FILTER (WHERE p.parent_id IS NULL) as thread_count
+      (SELECT COUNT(*) FROM posts p WHERE p.board_id = b.id AND p.parent_id IS NULL) as thread_count
     FROM boards b
-    LEFT JOIN posts p ON p.board_id = b.id
     WHERE b.is_active = true
-    GROUP BY b.id
     ORDER BY b.display_order ASC`,
   );
 
@@ -227,14 +225,13 @@ export async function listBoards(): Promise<Board[]> {
  * 根据 slug 获取板块详情
  */
 export async function getBoardBySlug(slug: string): Promise<Board | null> {
+  // 使用子查詢取代 JOIN + GROUP BY
   const result = await pool.query(
     `SELECT
       b.id, b.slug, b.name, b.description, b.display_order, b.is_active, b.created_at,
-      COUNT(p.id) FILTER (WHERE p.parent_id IS NULL) as thread_count
+      (SELECT COUNT(*) FROM posts p WHERE p.board_id = b.id AND p.parent_id IS NULL) as thread_count
     FROM boards b
-    LEFT JOIN posts p ON p.board_id = b.id
-    WHERE b.slug = $1 AND b.is_active = true
-    GROUP BY b.id`,
+    WHERE b.slug = $1 AND b.is_active = true`,
     [slug],
   );
 
@@ -263,16 +260,16 @@ export async function getBoardThreads(
   limit: number,
   offset: number,
 ): Promise<ThreadDetail[]> {
+  // 使用子查詢取代 self-join，效能更好
+  // 子查詢只對 LIMIT 後的結果計算，而非全部 threads
   const result = await pool.query(
     `SELECT
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id, p.board_id,
       p.title, p.author_name,
-      COUNT(r.id) as reply_count,
-      MAX(r.created_at) as last_reply_at
+      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count,
+      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id) as last_reply_at
     FROM posts p
-    LEFT JOIN posts r ON r.parent_id = p.id
     WHERE p.board_id = $1 AND p.parent_id IS NULL
-    GROUP BY p.id
     ORDER BY p.created_at DESC
     LIMIT $2 OFFSET $3`,
     [boardId, limit, offset],
