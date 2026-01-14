@@ -1,14 +1,13 @@
 name: Deploy to Production
 
 on:
-  schedule:
-    # 每天凌晨 4:00 (台北時間) = UTC 20:00
-    - cron: '0 20 * * *'
-  workflow_dispatch:  # 手動觸發（有特別需求時可立即部署）
+  workflow_dispatch:  # 完全手動控制 - 只有在明確要求時才部署
+  # schedule:
+  #   - cron: '0 20 * * *'  # 凌晨 4:00 定時部署已禁用
   # push:
   #   branches: [main]
-  # NOTE: Auto-deploy on push is disabled to prevent accidental deployments
-  #       Deployments happen daily at 4:00 AM or can be triggered manually
+  # NOTE: All automatic deployments are disabled
+  #       Production deployments only happen when explicitly requested
 
 jobs:
   deploy:
