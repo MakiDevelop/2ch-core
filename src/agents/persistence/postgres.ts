@@ -213,8 +213,12 @@ export async function searchThreads(
   query: string,
   limit: number = 20,
 ): Promise<ThreadDetail[]> {
-  // 使用 ILIKE 支援中文搜尋
-  const searchPattern = `%${query}%`;
+  // 轉義 LIKE 特殊字元，防止 pattern injection
+  const escapedQuery = query
+    .replace(/\\/g, "\\\\") // 先轉義反斜線
+    .replace(/%/g, "\\%")   // 轉義 %
+    .replace(/_/g, "\\_");  // 轉義 _
+  const searchPattern = `%${escapedQuery}%`;
   const result = await pool.query(
     `SELECT
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id,
