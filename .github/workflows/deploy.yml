@@ -1,13 +1,13 @@
 name: Deploy to Production
 
 on:
-  workflow_dispatch:  # 完全手動控制 - 只有在明確要求時才部署
-  # schedule:
-  #   - cron: '0 20 * * *'  # 凌晨 4:00 定時部署已禁用
+  schedule:
+    # 每天凌晨 4:00 (台北時間) = UTC 20:00
+    - cron: '0 20 * * *'
+  workflow_dispatch:  # 手動觸發（緊急部署時使用）
   # push:
   #   branches: [main]
-  # NOTE: All automatic deployments are disabled
-  #       Production deployments only happen when explicitly requested
+  # NOTE: Scheduled deployment at 4:00 AM daily with automatic rollback on failure
 
 jobs:
   deploy:
@@ -17,30 +17,77 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to server
+      - name: Deploy to server with auto-rollback
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            set -e  # Exit on any error
             cd /opt/2ch-core
 
-            # Pull latest code
+            echo "================================"
+            echo "Starting deployment at $(date)"
+            echo "================================"
+
+            # Save current commit for rollback
+            PREVIOUS_COMMIT=$(git rev-parse HEAD)
+            echo "Current commit: $PREVIOUS_COMMIT"
+
+            # Fetch and update to latest main
             git fetch origin main
+            NEW_COMMIT=$(git rev-parse origin/main)
+            echo "New commit: $NEW_COMMIT"
+
+            if [ "$PREVIOUS_COMMIT" == "$NEW_COMMIT" ]; then
+              echo "No new commits to deploy"
+              exit 0
+            fi
+
+            # Reset to new version
             git reset --hard origin/main
 
-            # Sync nginx config (git pull already updated the files)
+            # Sync nginx config
             docker compose -f docker-compose.deploy.yml exec -T nginx nginx -s reload || true
 
             # Rebuild and restart API
+            echo "Building new API image..."
             docker compose -f docker-compose.deploy.yml build api
+
+            echo "Deploying new API container..."
             docker compose -f docker-compose.deploy.yml up -d --force-recreate --no-deps api
 
-            echo "Deployment completed at $(date)"
+            # Wait for container to be ready
+            echo "Waiting for container to be ready..."
+            sleep 15
 
-      - name: Verify deployment
+            # Health check
+            echo "Running health check..."
+            if ! curl -sf https://2ch.tw/health; then
+              echo "❌ Health check FAILED - Starting rollback..."
+
+              # Rollback to previous version
+              git reset --hard $PREVIOUS_COMMIT
+              docker compose -f docker-compose.deploy.yml build api
+              docker compose -f docker-compose.deploy.yml up -d --force-recreate --no-deps api
+
+              echo "✅ Rollback completed to commit $PREVIOUS_COMMIT"
+              echo "Deployment FAILED and rolled back at $(date)"
+              exit 1
+            fi
+
+            echo "✅ Health check passed"
+            echo "================================"
+            echo "Deployment SUCCESS at $(date)"
+            echo "Deployed commit: $NEW_COMMIT"
+            echo "================================"
+
+      - name: Verify deployment (final check)
         run: |
-          sleep 10
-          curl -sf https://2ch.tw/health || exit 1
-          echo "Health check passed"
+          sleep 5
+          if ! curl -sf https://2ch.tw/health; then
+            echo "❌ Final health check failed"
+            exit 1
+          fi
+          echo "✅ Deployment verified successfully"
