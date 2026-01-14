@@ -1,0 +1,48 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to dev server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Setup dev directory if not exists
+            if [ ! -d /opt/2ch-core-dev ]; then
+              git clone https://github.com/MakiDevelop/2ch-core.git /opt/2ch-core-dev
+            fi
+
+            cd /opt/2ch-core-dev
+            git fetch origin develop
+            git reset --hard origin/develop
+
+            # Copy .env from production
+            cp /opt/2ch-core/.env .env
+            # Override SITE_URL for dev
+            sed -i 's|SITE_URL=.*|SITE_URL=https://dev.2ch.tw|' .env
+
+            # Sync public to nginx mount
+            rsync -av --delete public/ /opt/2ch-core/public-dev/
+
+            # Build and restart api-dev
+            cd /opt/2ch-core
+            docker compose -f docker-compose.deploy.yml build api-dev --build-arg CACHEBUST=$(date +%s)
+            docker compose -f docker-compose.deploy.yml up -d --force-recreate --no-deps api-dev
+
+            echo "Dev deployment completed at $(date)"
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          curl -sf https://dev.2ch.tw/health || exit 1
+          echo "Dev health check passed"

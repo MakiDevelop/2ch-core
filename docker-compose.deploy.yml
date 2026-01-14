@@ -13,10 +13,13 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./public:/var/www/html:ro
+      - ./public-dev:/var/www/html-dev:ro
       - certbot_data:/var/www/certbot:ro
       - certbot_conf:/etc/letsencrypt:ro
     depends_on:
       api:
+        condition: service_healthy
+      api-dev:
         condition: service_healthy
     networks:
       - 2ch-network
@@ -79,6 +82,51 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+
+  # Development API - runs develop branch, shares DB with production
+  api-dev:
+    container_name: 2ch-core-api-dev
+    build:
+      context: /opt/2ch-core-dev
+      dockerfile: Dockerfile
+      target: production
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      APP_SECRET: ${APP_SECRET}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN}
+      ADMIN_IP_HASHES: ${ADMIN_IP_HASHES}
+      SITE_URL: https://dev.2ch.tw
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - 2ch-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
 
   postgres:
     container_name: 2ch-core-postgres
