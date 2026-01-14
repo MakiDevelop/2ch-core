@@ -3,12 +3,22 @@
 ## 分支策略
 
 ```
-main     ──► 線上環境（push 自動部署）
+main     ──► 線上環境 https://2ch.tw（push 自動部署）
   ↑
   └── PR merge
 
-develop  ──► 開發分支（不影響線上）
+develop  ──► 測試環境 https://dev.2ch.tw（push 自動部署）
 ```
+
+## 環境隔離
+
+| 項目 | Production (2ch.tw) | Development (dev.2ch.tw) |
+|------|---------------------|--------------------------|
+| 分支 | `main` | `develop` |
+| 資料庫 | `2ch` | `2ch_dev` |
+| 容器 | `api` | `api-dev` |
+| robots.txt | Allow all | Disallow all |
+| 搜尋引擎 | 會收錄 | 不收錄 |
 
 ## 跟 Claude 協作
 
