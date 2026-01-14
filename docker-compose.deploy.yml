@@ -83,7 +83,7 @@ services:
           cpus: '0.25'
           memory: 128M
 
-  # Development API - runs develop branch, shares DB with production
+  # Development API - runs develop branch with ISOLATED data
   api-dev:
     container_name: 2ch-core-api-dev
     build:
@@ -94,7 +94,8 @@ services:
       - "3000"
     environment:
       NODE_ENV: development
-      DATABASE_URL: ${DATABASE_URL}
+      # ISOLATED: Uses separate dev database (2ch_dev)
+      DATABASE_URL: ${DATABASE_URL_DEV}
       REDIS_URL: ${REDIS_URL}
       APP_SECRET: ${APP_SECRET}
       ADMIN_API_TOKEN: ${ADMIN_API_TOKEN}
