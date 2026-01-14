@@ -19,6 +19,8 @@ export {
   unlockPostHandler,
   moderateByIpHandler,
   systemStatusHandler,
+  listThreadsHandler,
+  listThreadsByLastReplyHandler,
 } from "./admin";
 
 export {

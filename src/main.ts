@@ -15,6 +15,8 @@ import {
   unlockPostHandler,
   moderateByIpHandler,
   systemStatusHandler,
+  listThreadsHandler,
+  listThreadsByLastReplyHandler,
   sitemapHandler,
   robotsHandler,
 } from "./agents/api";
@@ -44,6 +46,8 @@ app.get("/health", (_req, res) => {
 
 // admin API (管理员功能)
 app.get("/admin/system-status", systemStatusHandler);
+app.get("/admin/threads", listThreadsHandler);
+app.get("/admin/threads/by-last-reply", listThreadsByLastReplyHandler);
 app.post("/admin/posts/:id/delete", deletePostHandler);
 app.post("/admin/posts/:id/lock", lockPostHandler);
 app.post("/admin/posts/:id/unlock", unlockPostHandler);

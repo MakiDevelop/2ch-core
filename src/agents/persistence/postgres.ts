@@ -137,6 +137,76 @@ export async function listPosts(limit: number): Promise<Post[]> {
 }
 
 /**
+ * 列出最新討論串（僅主帖，不含回覆）
+ */
+export async function listThreads(limit: number): Promise<ThreadDetail[]> {
+  const result = await pool.query(
+    `SELECT
+      p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id,
+      p.title, p.author_name, p.board_id,
+      b.slug as board_slug, b.name as board_name,
+      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count
+    FROM posts p
+    LEFT JOIN boards b ON b.id = p.board_id
+    WHERE p.parent_id IS NULL
+    ORDER BY p.created_at DESC
+    LIMIT $1`,
+    [limit],
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    content: row.content,
+    status: row.status,
+    ipHash: row.ip_hash,
+    createdAt: row.created_at,
+    parentId: row.parent_id,
+    boardId: row.board_id,
+    title: row.title,
+    authorName: row.author_name,
+    boardSlug: row.board_slug,
+    boardName: row.board_name,
+    replyCount: parseInt(row.reply_count, 10) || 0,
+  }));
+}
+
+/**
+ * 列出最近有回覆的討論串（按最後回覆時間排序）
+ */
+export async function listThreadsByLastReply(limit: number): Promise<ThreadDetail[]> {
+  const result = await pool.query(
+    `SELECT
+      p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id,
+      p.title, p.author_name, p.board_id,
+      b.slug as board_slug, b.name as board_name,
+      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count,
+      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id) as last_reply_at
+    FROM posts p
+    LEFT JOIN boards b ON b.id = p.board_id
+    WHERE p.parent_id IS NULL
+    ORDER BY last_reply_at DESC NULLS LAST
+    LIMIT $1`,
+    [limit],
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    content: row.content,
+    status: row.status,
+    ipHash: row.ip_hash,
+    createdAt: row.created_at,
+    lastReplyAt: row.last_reply_at,
+    parentId: row.parent_id,
+    boardId: row.board_id,
+    title: row.title,
+    authorName: row.author_name,
+    boardSlug: row.board_slug,
+    boardName: row.board_name,
+    replyCount: parseInt(row.reply_count, 10) || 0,
+  }));
+}
+
+/**
  * 获取指定主题的详细信息（含回复统计）
  */
 export async function getThreadById(

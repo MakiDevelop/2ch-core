@@ -5,6 +5,8 @@ import {
   unlockPost,
   deletePostsByIpHash,
   getSystemStats,
+  listThreads,
+  listThreadsByLastReply,
 } from "../persistence/postgres";
 import { checkAdminAuth, checkDeleteReason } from "../guard/adminGuard";
 import crypto from "crypto";
@@ -316,5 +318,65 @@ async function getContainerStatus(): Promise<any> {
     };
   } catch (error) {
     return { error: "Failed to get container status" };
+  }
+}
+
+/**
+ * GET /admin/threads
+ * 列出最新討論串（僅管理員可用）
+ */
+export async function listThreadsHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    // 檢查管理員權限
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const limitParam = req.query?.limit;
+    const parsed = typeof limitParam === "string" ? Number(limitParam) : NaN;
+    const limit = Number.isFinite(parsed)
+      ? Math.min(Math.max(parsed, 1), 100)
+      : 10;
+
+    const threads = await listThreads(limit);
+    res.json({ items: threads });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * GET /admin/threads/by-last-reply
+ * 列出最近有回覆的討論串（僅管理員可用）
+ */
+export async function listThreadsByLastReplyHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    // 檢查管理員權限
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const limitParam = req.query?.limit;
+    const parsed = typeof limitParam === "string" ? Number(limitParam) : NaN;
+    const limit = Number.isFinite(parsed)
+      ? Math.min(Math.max(parsed, 1), 100)
+      : 10;
+
+    const threads = await listThreadsByLastReply(limit);
+    res.json({ items: threads });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "internal server error" });
   }
 }

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - 2ch.tw</title>
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #242424;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaa;
+            --text-muted: #777;
+            --border-primary: #444;
+            --accent-color: #5b8ef4;
+            --error-color: #ff6b6b;
+            --success-color: #51cf66;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-primary);
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.5em;
+            color: var(--text-primary);
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid var(--border-primary);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--error-color);
+            color: var(--error-color);
+        }
+
+        /* Login Form */
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-primary);
+        }
+
+        .login-container h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .login-container input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .login-container button:hover {
+            opacity: 0.9;
+        }
+
+        .error-msg {
+            color: var(--error-color);
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+        }
+
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-primary);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header h2 {
+            font-size: 1.1em;
+            color: var(--text-primary);
+        }
+
+        .refresh-btn {
+            background: transparent;
+            border: 1px solid var(--border-primary);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .refresh-btn:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-controls label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .thread-list {
+            list-style: none;
+        }
+
+        .thread-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-primary);
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.2s;
+        }
+
+        .thread-item:last-child {
+            border-bottom: none;
+        }
+
+        .thread-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .thread-title {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .thread-meta {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .thread-meta .board {
+            color: var(--accent-color);
+        }
+
+        .thread-meta .replies {
+            color: var(--success-color);
+        }
+
+        .loading {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Form -->
+    <div class="login-container" id="login-form">
+        <h2>🔐 Admin Login</h2>
+        <input type="password" id="token-input" placeholder="Enter Admin Token">
+        <button onclick="login()">登入</button>
+        <div class="error-msg" id="login-error"></div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <div class="container">
+            <header>
+                <h1>📊 Admin Dashboard</h1>
+                <button class="logout-btn" onclick="logout()">登出</button>
+            </header>
+
+            <!-- Stats -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>📈 統計</h2>
+                </div>
+                <div class="stats-grid" id="stats-container">
+                    <div class="loading">載入中...</div>
+                </div>
+            </div>
+
+            <!-- Latest Threads -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🆕 最新討論串</h2>
+                    <div class="header-controls">
+                        <label>
+                            顯示
+                            <input type="number" id="thread-limit" value="10" min="1" max="100" style="width: 60px; padding: 4px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; color: var(--text-primary); text-align: center;">
+                            筆
+                        </label>
+                        <button class="refresh-btn" onclick="loadLatestThreads()">重新整理</button>
+                    </div>
+                </div>
+                <ul class="thread-list" id="threads-container">
+                    <li class="loading">載入中...</li>
+                </ul>
+            </div>
+
+            <!-- Latest Replied Threads -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>💬 最新回覆討論串</h2>
+                    <div class="header-controls">
+                        <label>
+                            顯示
+                            <input type="number" id="replied-limit" value="10" min="1" max="100" style="width: 60px; padding: 4px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; color: var(--text-primary); text-align: center;">
+                            筆
+                        </label>
+                        <button class="refresh-btn" onclick="loadLatestRepliedThreads()">重新整理</button>
+                    </div>
+                </div>
+                <ul class="thread-list" id="replied-threads-container">
+                    <li class="loading">載入中...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let adminToken = localStorage.getItem('adminToken') || '';
+
+        // Check if already logged in
+        if (adminToken) {
+            verifyAndShowDashboard();
+        }
+
+        async function login() {
+            const input = document.getElementById('token-input');
+            const error = document.getElementById('login-error');
+            const token = input.value.trim();
+
+            if (!token) {
+                error.textContent = '請輸入 Token';
+                return;
+            }
+
+            error.textContent = '';
+
+            // Verify token by calling admin API
+            try {
+                const res = await fetch(`${API_BASE}/admin/system-status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    adminToken = token;
+                    localStorage.setItem('adminToken', token);
+                    showDashboard();
+                } else {
+                    error.textContent = 'Token 無效';
+                }
+            } catch (e) {
+                error.textContent = '連線失敗';
+            }
+        }
+
+        async function verifyAndShowDashboard() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/system-status`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+
+                if (res.ok) {
+                    showDashboard();
+                } else {
+                    logout();
+                }
+            } catch (e) {
+                logout();
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            loadStats();
+            loadLatestThreads();
+            loadLatestRepliedThreads();
+        }
+
+        function logout() {
+            adminToken = '';
+            localStorage.removeItem('adminToken');
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('token-input').value = '';
+        }
+
+        async function loadStats() {
+            const container = document.getElementById('stats-container');
+            try {
+                const res = await fetch(`${API_BASE}/admin/system-status`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                const data = await res.json();
+
+                if (data.database && data.database.stats) {
+                    const stats = data.database.stats;
+                    container.innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.threads || 0}</div>
+                            <div class="stat-label">討論串</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.replies || 0}</div>
+                            <div class="stat-label">回覆</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.todayPosts || 0}</div>
+                            <div class="stat-label">今日發文</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.todayThreads || 0}</div>
+                            <div class="stat-label">今日新串</div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="loading">載入失敗</div>';
+            }
+        }
+
+        async function loadLatestThreads() {
+            const container = document.getElementById('threads-container');
+            container.innerHTML = '<li class="loading">載入中...</li>';
+
+            const limit = document.getElementById('thread-limit').value || 10;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/threads?limit=${limit}`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                const data = await res.json();
+
+                const threads = data.items || [];
+
+                if (threads.length === 0) {
+                    container.innerHTML = '<li class="empty">沒有討論串</li>';
+                    return;
+                }
+
+                container.innerHTML = threads.map(thread => `
+                    <a href="/posts/${thread.id}" target="_blank" class="thread-item">
+                        <div class="thread-title">${escapeHtml(thread.title || '無標題')}</div>
+                        <div class="thread-meta">
+                            <span class="board">/${thread.boardSlug || 'unknown'}/</span>
+                            <span>${escapeHtml(thread.authorName || '名無しさん')}</span>
+                            <span>${formatTime(thread.createdAt)}</span>
+                            <span class="replies">${thread.replyCount || 0} 回覆</span>
+                        </div>
+                    </a>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<li class="loading">載入失敗</li>';
+            }
+        }
+
+        async function loadLatestRepliedThreads() {
+            const container = document.getElementById('replied-threads-container');
+            container.innerHTML = '<li class="loading">載入中...</li>';
+
+            const limit = document.getElementById('replied-limit').value || 10;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/threads/by-last-reply?limit=${limit}`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                const data = await res.json();
+
+                const threads = data.items || [];
+
+                if (threads.length === 0) {
+                    container.innerHTML = '<li class="empty">沒有有回覆的討論串</li>';
+                    return;
+                }
+
+                container.innerHTML = threads.map(thread => `
+                    <a href="/posts/${thread.id}" target="_blank" class="thread-item">
+                        <div class="thread-title">${escapeHtml(thread.title || '無標題')}</div>
+                        <div class="thread-meta">
+                            <span class="board">/${thread.boardSlug || 'unknown'}/</span>
+                            <span>${escapeHtml(thread.authorName || '名無しさん')}</span>
+                            <span>最後回覆: ${formatTime(thread.lastReplyAt)}</span>
+                            <span class="replies">${thread.replyCount || 0} 回覆</span>
+                        </div>
+                    </a>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<li class="loading">載入失敗</li>';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const mins = Math.floor(diff / 60000);
+            const hours = Math.floor(mins / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) return `${days}天前`;
+            if (hours > 0) return `${hours}小時前`;
+            if (mins > 0) return `${mins}分鐘前`;
+            return '剛剛';
+        }
+
+        // Enter key to login
+        document.getElementById('token-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+
+        // Enter key to refresh threads
+        document.getElementById('thread-limit').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loadLatestThreads();
+        });
+
+        // Enter key to refresh replied threads
+        document.getElementById('replied-limit').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loadLatestRepliedThreads();
+        });
+    </script>
+</body>
+</html>
