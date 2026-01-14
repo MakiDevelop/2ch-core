@@ -138,31 +138,24 @@ export function threadPageMiddleware(
     return next();
   }
 
-  // 檢查是否為瀏覽器請求（Accept 包含 text/html）
+  // API 請求（fetch/XHR）明確要求 JSON
   const accept = req.headers.accept || "";
-  const isHtmlRequest = accept.includes("text/html");
-
-  // API 請求（fetch/XHR）通常用 application/json
   const isApiRequest =
     accept.includes("application/json") ||
     req.xhr ||
     req.headers["x-requested-with"] === "XMLHttpRequest";
 
-  // 如果是 API 請求，跳過讓 API handler 處理
-  if (isApiRequest && !isHtmlRequest) {
+  // 如果是明確的 API 請求，跳過讓 API handler 處理
+  if (isApiRequest) {
     return next();
   }
 
-  // 如果是瀏覽器請求，處理 SSR
-  if (isHtmlRequest) {
-    req.params = { id: match[1] };
-    threadPageHandler(req, res).then((handled) => {
-      if (!handled) {
-        next();
-      }
-    });
-    return;
-  }
-
-  next();
+  // 其他所有請求（瀏覽器、爬蟲）都返回 SSR HTML
+  // 爬蟲（Twitterbot, facebookexternalhit, LINE）通常發送 Accept: */* 或不發送
+  req.params = { id: match[1] };
+  threadPageHandler(req, res).then((handled) => {
+    if (!handled) {
+      next();
+    }
+  });
 }
