@@ -236,6 +236,16 @@ header h1 {
     transform: translateX(2px);
 }
 
+.board-link.search-link {
+    margin-top: 10px;
+    border-left-color: var(--link-color);
+    background: var(--bg-secondary);
+}
+
+.board-link.search-link:hover {
+    border-left-color: var(--link-color);
+}
+
 .board-name {
     display: block;
     font-weight: 600;

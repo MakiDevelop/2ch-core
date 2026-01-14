@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜尋 - 2ch.tw</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="2ch.tw 全站搜尋 - 搜尋討論串標題與內容">
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="https://2ch.tw/search.html">
+
+    <link rel="stylesheet" href="/css/style.css">
+    <script>
+    (function(){
+        var theme = localStorage.getItem('theme');
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+    </script>
+    <style>
+        .search-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 1px solid var(--border-primary, #ddd);
+            border-radius: 8px;
+            background: var(--bg-secondary, #fff);
+            color: var(--text-primary, #333);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent-color, #5b8ef4);
+        }
+
+        .search-box button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background: var(--accent-color, #5b8ef4);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .search-box button:hover {
+            opacity: 0.9;
+        }
+
+        .search-box button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .search-info {
+            font-size: 14px;
+            color: var(--text-muted, #777);
+            margin-bottom: 20px;
+        }
+
+        .search-results {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .search-result-item {
+            display: block;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: var(--bg-secondary, #fff);
+            border: 1px solid var(--border-primary, #ddd);
+            border-radius: 8px;
+            text-decoration: none;
+            color: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .search-result-item:hover {
+            border-color: var(--accent-color, #5b8ef4);
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary, #333);
+            margin-bottom: 8px;
+        }
+
+        .result-content {
+            font-size: 14px;
+            color: var(--text-secondary, #666);
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .result-meta {
+            font-size: 13px;
+            color: var(--text-muted, #999);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .result-meta .board {
+            color: var(--accent-color, #5b8ef4);
+        }
+
+        .result-meta .replies {
+            color: var(--success-color, #51cf66);
+        }
+
+        .search-status {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted, #777);
+        }
+
+        .cooldown-timer {
+            color: var(--error-color, #ff6b6b);
+            font-weight: 500;
+        }
+
+        .highlight {
+            background: rgba(91, 142, 244, 0.2);
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/" style="text-decoration: none; color: inherit;">2ch.tw</a></h1>
+            <p class="subtitle">匿名討論版 - 對事不對人</p>
+        </header>
+
+        <div class="search-container">
+            <h2 style="margin-bottom: 20px;">全站搜尋</h2>
+
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="輸入關鍵字搜尋討論串..." maxlength="50" autofocus>
+                <button id="search-btn" onclick="doSearch()">搜尋</button>
+            </div>
+
+            <div class="search-info">
+                <span id="cooldown-display"></span>
+                <span>搜尋討論串標題與內文，至少 2 個字元，每 10 秒可搜尋一次</span>
+            </div>
+
+            <div id="search-status" class="search-status" style="display: none;"></div>
+
+            <ul id="search-results" class="search-results"></ul>
+        </div>
+
+        <footer>
+            <p>&copy; 2026 2ch.tw - <a href="/">返回首頁</a></p>
+        </footer>
+    </div>
+
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="切換深色模式">
+        <span class="icon-moon">🌙</span>
+        <span class="icon-sun">☀️</span>
+    </button>
+
+    <script>
+        const COOLDOWN_MS = 10 * 1000;
+        let lastSearchTime = parseInt(localStorage.getItem('lastSearchTime') || '0', 10);
+        let cooldownInterval = null;
+
+        // Check URL params for initial search
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialQuery = urlParams.get('q');
+        if (initialQuery) {
+            document.getElementById('search-input').value = initialQuery;
+            // Wait a bit for page load then search
+            setTimeout(() => doSearch(), 100);
+        }
+
+        // Update cooldown display
+        function updateCooldown() {
+            const now = Date.now();
+            const elapsed = now - lastSearchTime;
+            const remaining = Math.max(0, COOLDOWN_MS - elapsed);
+            const display = document.getElementById('cooldown-display');
+            const btn = document.getElementById('search-btn');
+
+            if (remaining > 0) {
+                const secs = Math.ceil(remaining / 1000);
+                display.innerHTML = `<span class="cooldown-timer">冷卻中: ${secs}秒</span> | `;
+                btn.disabled = true;
+            } else {
+                display.innerHTML = '';
+                btn.disabled = false;
+                if (cooldownInterval) {
+                    clearInterval(cooldownInterval);
+                    cooldownInterval = null;
+                }
+            }
+        }
+
+        // Start cooldown timer
+        function startCooldown() {
+            lastSearchTime = Date.now();
+            localStorage.setItem('lastSearchTime', lastSearchTime.toString());
+            updateCooldown();
+            cooldownInterval = setInterval(updateCooldown, 1000);
+        }
+
+        // Initial cooldown check
+        updateCooldown();
+        if (Date.now() - lastSearchTime < COOLDOWN_MS) {
+            cooldownInterval = setInterval(updateCooldown, 1000);
+        }
+
+        async function doSearch() {
+            const input = document.getElementById('search-input');
+            const resultsEl = document.getElementById('search-results');
+            const statusEl = document.getElementById('search-status');
+            const query = input.value.trim();
+
+            // Validate
+            if (query.length < 2) {
+                statusEl.style.display = 'block';
+                statusEl.textContent = '請輸入至少 2 個字元';
+                resultsEl.innerHTML = '';
+                return;
+            }
+
+            // Check frontend cooldown
+            const now = Date.now();
+            if (now - lastSearchTime < COOLDOWN_MS) {
+                const secs = Math.ceil((COOLDOWN_MS - (now - lastSearchTime)) / 1000);
+                statusEl.style.display = 'block';
+                statusEl.innerHTML = `<span class="cooldown-timer">請等待 ${secs} 秒後再搜尋</span>`;
+                return;
+            }
+
+            // Show loading
+            statusEl.style.display = 'block';
+            statusEl.textContent = '搜尋中...';
+            resultsEl.innerHTML = '';
+
+            try {
+                const res = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    statusEl.textContent = data.error || '搜尋失敗';
+                    if (data.retryAfter) {
+                        // Server says we're rate limited
+                        lastSearchTime = Date.now() - COOLDOWN_MS + (data.retryAfter * 1000);
+                        localStorage.setItem('lastSearchTime', lastSearchTime.toString());
+                        startCooldown();
+                    }
+                    return;
+                }
+
+                // Start cooldown
+                startCooldown();
+
+                // Update URL
+                history.replaceState(null, '', `/search.html?q=${encodeURIComponent(query)}`);
+
+                // Show results
+                if (data.count === 0) {
+                    statusEl.textContent = `找不到「${query}」相關的討論串`;
+                    return;
+                }
+
+                statusEl.style.display = 'none';
+                resultsEl.innerHTML = data.items.map(item => `
+                    <a href="/posts/${item.id}" class="search-result-item">
+                        <div class="result-title">${highlightText(escapeHtml(item.title || '無標題'), query)}</div>
+                        <div class="result-content">${highlightText(escapeHtml(item.content || ''), query)}</div>
+                        <div class="result-meta">
+                            <span class="board">/${item.boardSlug || 'unknown'}/</span>
+                            <span>${escapeHtml(item.authorName || '名無しさん')}</span>
+                            <span>${formatTime(item.createdAt)}</span>
+                            <span class="replies">${item.replyCount || 0} 回覆</span>
+                        </div>
+                    </a>
+                `).join('');
+
+            } catch (e) {
+                statusEl.textContent = '搜尋失敗，請稍後再試';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function highlightText(text, query) {
+            if (!query) return text;
+            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function formatTime(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const mins = Math.floor(diff / 60000);
+            const hours = Math.floor(mins / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) return `${days}天前`;
+            if (hours > 0) return `${hours}小時前`;
+            if (mins > 0) return `${mins}分鐘前`;
+            return '剛剛';
+        }
+
+        // Enter key to search
+        document.getElementById('search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        // Theme toggle
+        document.getElementById('theme-toggle').addEventListener('click', function() {
+            var currentTheme = document.documentElement.getAttribute('data-theme');
+            var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    </script>
+</body>
+</html>

@@ -126,6 +126,46 @@
             display: none;
         }
 
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-primary);
+            padding-bottom: 0;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 12px 24px;
+            font-size: 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+            background: var(--bg-secondary);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
         .section {
             background: var(--bg-secondary);
             border-radius: 12px;
@@ -176,6 +216,16 @@
             color: var(--text-secondary);
         }
 
+        .limit-input {
+            width: 60px;
+            padding: 4px 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 4px;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
         .thread-list {
             list-style: none;
         }
@@ -219,6 +269,11 @@
             color: var(--success-color);
         }
 
+        .thread-meta .post-id {
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
         .loading {
             padding: 40px;
             text-align: center;
@@ -257,12 +312,153 @@
             color: var(--text-muted);
             margin-top: 4px;
         }
+
+        /* System Info */
+        .system-info {
+            padding: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .info-card {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .info-card h4 {
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .info-card p {
+            color: var(--text-primary);
+            font-size: 14px;
+            margin: 4px 0;
+        }
+
+        .info-card .value {
+            color: var(--accent-color);
+            font-family: monospace;
+        }
+
+        /* Moderation Tools */
+        .mod-tools {
+            padding: 20px;
+        }
+
+        .mod-tool-group {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .mod-tool-group:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .mod-tool-group h4 {
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+        }
+
+        .tool-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0 0 12px 0;
+        }
+
+        .tool-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tool-form input {
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .tool-form input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .tool-form input[type="number"] {
+            width: 100px;
+        }
+
+        .tool-form input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .danger-btn {
+            background: var(--error-color);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .danger-btn:hover {
+            opacity: 0.9;
+        }
+
+        .tool-result {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .tool-result.success {
+            display: block;
+            background: rgba(81, 207, 102, 0.1);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .tool-result.error {
+            display: block;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+        }
+
+        .tool-result.info {
+            display: block;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            color: var(--text-primary);
+        }
+
+        .post-preview {
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
     <!-- Login Form -->
     <div class="login-container" id="login-form">
-        <h2>🔐 Admin Login</h2>
+        <h2>Admin Login</h2>
         <input type="password" id="token-input" placeholder="Enter Admin Token">
         <button onclick="login()">登入</button>
         <div class="error-msg" id="login-error"></div>
@@ -272,54 +468,105 @@
     <div class="dashboard" id="dashboard">
         <div class="container">
             <header>
-                <h1>📊 Admin Dashboard</h1>
+                <h1>Admin Dashboard</h1>
                 <button class="logout-btn" onclick="logout()">登出</button>
             </header>
 
-            <!-- Stats -->
-            <div class="section">
-                <div class="section-header">
-                    <h2>📈 統計</h2>
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('stats')">統計</button>
+                <button class="tab-btn" onclick="switchTab('threads')">討論串</button>
+                <button class="tab-btn" onclick="switchTab('mod')">管理</button>
+            </div>
+
+            <!-- Tab 1: Stats -->
+            <div id="tab-stats" class="tab-panel active">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>發文統計</h2>
+                        <button class="refresh-btn" onclick="loadStats()">重新整理</button>
+                    </div>
+                    <div class="stats-grid" id="stats-container">
+                        <div class="loading">載入中...</div>
+                    </div>
                 </div>
-                <div class="stats-grid" id="stats-container">
-                    <div class="loading">載入中...</div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>系統狀態</h2>
+                    </div>
+                    <div class="system-info" id="system-container">
+                        <div class="loading">載入中...</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Latest Threads -->
-            <div class="section">
-                <div class="section-header">
-                    <h2>🆕 最新討論串</h2>
-                    <div class="header-controls">
-                        <label>
-                            顯示
-                            <input type="number" id="thread-limit" value="10" min="1" max="100" style="width: 60px; padding: 4px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; color: var(--text-primary); text-align: center;">
-                            筆
-                        </label>
-                        <button class="refresh-btn" onclick="loadLatestThreads()">重新整理</button>
+            <!-- Tab 2: Threads -->
+            <div id="tab-threads" class="tab-panel">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>最新討論串</h2>
+                        <div class="header-controls">
+                            <label>
+                                顯示
+                                <input type="number" id="thread-limit" class="limit-input" value="10" min="1" max="100">
+                                筆
+                            </label>
+                            <button class="refresh-btn" onclick="loadLatestThreads()">重新整理</button>
+                        </div>
                     </div>
+                    <ul class="thread-list" id="threads-container">
+                        <li class="loading">載入中...</li>
+                    </ul>
                 </div>
-                <ul class="thread-list" id="threads-container">
-                    <li class="loading">載入中...</li>
-                </ul>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>最新回覆討論串</h2>
+                        <div class="header-controls">
+                            <label>
+                                顯示
+                                <input type="number" id="replied-limit" class="limit-input" value="10" min="1" max="100">
+                                筆
+                            </label>
+                            <button class="refresh-btn" onclick="loadLatestRepliedThreads()">重新整理</button>
+                        </div>
+                    </div>
+                    <ul class="thread-list" id="replied-threads-container">
+                        <li class="loading">載入中...</li>
+                    </ul>
+                </div>
             </div>
 
-            <!-- Latest Replied Threads -->
-            <div class="section">
-                <div class="section-header">
-                    <h2>💬 最新回覆討論串</h2>
-                    <div class="header-controls">
-                        <label>
-                            顯示
-                            <input type="number" id="replied-limit" value="10" min="1" max="100" style="width: 60px; padding: 4px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; color: var(--text-primary); text-align: center;">
-                            筆
-                        </label>
-                        <button class="refresh-btn" onclick="loadLatestRepliedThreads()">重新整理</button>
+            <!-- Tab 3: Moderation -->
+            <div id="tab-mod" class="tab-panel">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>管理工具</h2>
+                    </div>
+                    <div class="mod-tools">
+                        <div class="mod-tool-group">
+                            <h4>查詢貼文</h4>
+                            <p class="tool-desc">輸入 ID 查看貼文詳情（可用於確認刪除目標）</p>
+                            <div class="tool-form">
+                                <input type="number" id="lookup-post-id" placeholder="貼文 ID" min="1">
+                                <button class="refresh-btn" onclick="lookupPost()">查詢</button>
+                            </div>
+                            <div id="lookup-result" class="tool-result"></div>
+                        </div>
+
+                        <div class="mod-tool-group">
+                            <h4>刪除 / 隱藏貼文</h4>
+                            <p class="tool-desc">輸入貼文 ID 進行軟刪除（討論串或回覆皆可）</p>
+                            <div class="tool-form">
+                                <input type="number" id="delete-post-id" placeholder="貼文 ID" min="1">
+                                <input type="text" id="delete-reason" placeholder="刪除原因（必填）" maxlength="200">
+                                <button class="danger-btn" onclick="deletePost()">刪除</button>
+                            </div>
+                            <div id="delete-result" class="tool-result"></div>
+                        </div>
                     </div>
                 </div>
-                <ul class="thread-list" id="replied-threads-container">
-                    <li class="loading">載入中...</li>
-                </ul>
             </div>
         </div>
     </div>
@@ -327,10 +574,31 @@
     <script>
         const API_BASE = '';
         let adminToken = localStorage.getItem('adminToken') || '';
+        let systemData = null;
 
         // Check if already logged in
         if (adminToken) {
             verifyAndShowDashboard();
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update panels
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+
+            // Load data for tab if needed
+            if (tabName === 'threads') {
+                const threadsContainer = document.getElementById('threads-container');
+                if (threadsContainer.querySelector('.loading')) {
+                    loadLatestThreads();
+                    loadLatestRepliedThreads();
+                }
+            }
         }
 
         async function login() {
@@ -345,7 +613,6 @@
 
             error.textContent = '';
 
-            // Verify token by calling admin API
             try {
                 const res = await fetch(`${API_BASE}/admin/system-status`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -383,8 +650,6 @@
             document.getElementById('login-form').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
             loadStats();
-            loadLatestThreads();
-            loadLatestRepliedThreads();
         }
 
         function logout() {
@@ -396,16 +661,20 @@
         }
 
         async function loadStats() {
-            const container = document.getElementById('stats-container');
+            const statsContainer = document.getElementById('stats-container');
+            const systemContainer = document.getElementById('system-container');
+
             try {
                 const res = await fetch(`${API_BASE}/admin/system-status`, {
                     headers: { 'Authorization': `Bearer ${adminToken}` }
                 });
                 const data = await res.json();
+                systemData = data;
 
+                // Render stats
                 if (data.database && data.database.stats) {
                     const stats = data.database.stats;
-                    container.innerHTML = `
+                    statsContainer.innerHTML = `
                         <div class="stat-card">
                             <div class="stat-value">${stats.threads || 0}</div>
                             <div class="stat-label">討論串</div>
@@ -424,8 +693,49 @@
                         </div>
                     `;
                 }
+
+                // Render system info
+                if (data.system && data.process) {
+                    const sys = data.system;
+                    const proc = data.process;
+                    const memUsedMB = Math.round(sys.usedMemory / 1024 / 1024);
+                    const memTotalMB = Math.round(sys.totalMemory / 1024 / 1024);
+
+                    systemContainer.innerHTML = `
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <h4>主機</h4>
+                                <p>Hostname: <span class="value">${sys.hostname}</span></p>
+                                <p>Platform: <span class="value">${sys.platform} ${sys.arch}</span></p>
+                                <p>Uptime: <span class="value">${sys.uptimeFormatted}</span></p>
+                            </div>
+                            <div class="info-card">
+                                <h4>資源</h4>
+                                <p>CPU Cores: <span class="value">${sys.cpus}</span></p>
+                                <p>Memory: <span class="value">${memUsedMB}MB / ${memTotalMB}MB (${sys.memoryUsagePercent}%)</span></p>
+                                <p>Load Avg: <span class="value">${sys.loadavg.map(n => n.toFixed(2)).join(', ')}</span></p>
+                            </div>
+                            <div class="info-card">
+                                <h4>Node.js</h4>
+                                <p>Version: <span class="value">${proc.nodeVersion}</span></p>
+                                <p>PID: <span class="value">${proc.pid}</span></p>
+                                <p>Uptime: <span class="value">${proc.uptimeFormatted}</span></p>
+                            </div>
+                            <div class="info-card">
+                                <h4>容器</h4>
+                                ${data.containers && data.containers.containers ?
+                                    data.containers.containers.map(c =>
+                                        `<p>${c.name}: <span class="value">${c.state}</span></p>`
+                                    ).join('') :
+                                    '<p class="value">無法取得</p>'
+                                }
+                            </div>
+                        </div>
+                    `;
+                }
             } catch (e) {
-                container.innerHTML = '<div class="loading">載入失敗</div>';
+                statsContainer.innerHTML = '<div class="loading">載入失敗</div>';
+                systemContainer.innerHTML = '<div class="loading">載入失敗</div>';
             }
         }
 
@@ -440,7 +750,6 @@
                     headers: { 'Authorization': `Bearer ${adminToken}` }
                 });
                 const data = await res.json();
-
                 const threads = data.items || [];
 
                 if (threads.length === 0) {
@@ -452,6 +761,7 @@
                     <a href="/posts/${thread.id}" target="_blank" class="thread-item">
                         <div class="thread-title">${escapeHtml(thread.title || '無標題')}</div>
                         <div class="thread-meta">
+                            <span class="post-id">#${thread.id}</span>
                             <span class="board">/${thread.boardSlug || 'unknown'}/</span>
                             <span>${escapeHtml(thread.authorName || '名無しさん')}</span>
                             <span>${formatTime(thread.createdAt)}</span>
@@ -475,7 +785,6 @@
                     headers: { 'Authorization': `Bearer ${adminToken}` }
                 });
                 const data = await res.json();
-
                 const threads = data.items || [];
 
                 if (threads.length === 0) {
@@ -487,6 +796,7 @@
                     <a href="/posts/${thread.id}" target="_blank" class="thread-item">
                         <div class="thread-title">${escapeHtml(thread.title || '無標題')}</div>
                         <div class="thread-meta">
+                            <span class="post-id">#${thread.id}</span>
                             <span class="board">/${thread.boardSlug || 'unknown'}/</span>
                             <span>${escapeHtml(thread.authorName || '名無しさん')}</span>
                             <span>最後回覆: ${formatTime(thread.lastReplyAt)}</span>
@@ -520,19 +830,121 @@
             return '剛剛';
         }
 
-        // Enter key to login
+        // Lookup post
+        async function lookupPost() {
+            const postId = document.getElementById('lookup-post-id').value;
+            const resultEl = document.getElementById('lookup-result');
+
+            if (!postId) {
+                resultEl.className = 'tool-result error';
+                resultEl.textContent = '請輸入貼文 ID';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/posts/${postId}`);
+                const data = await res.json();
+
+                if (res.ok) {
+                    const isThread = !data.parentId;
+                    const statusText = data.status === 0 ? '正常' : data.status === 1 ? '已刪除' : `狀態=${data.status}`;
+                    resultEl.className = 'tool-result info';
+                    resultEl.innerHTML = `
+                        <div><strong>ID:</strong> ${data.id} (${isThread ? '討論串' : '回覆'})</div>
+                        <div><strong>狀態:</strong> ${statusText}</div>
+                        <div><strong>板塊:</strong> /${data.boardSlug || 'unknown'}/ ${data.boardName || ''}</div>
+                        <div><strong>作者:</strong> ${escapeHtml(data.authorName || '名無しさん')}</div>
+                        <div><strong>時間:</strong> ${new Date(data.createdAt).toLocaleString('zh-TW')}</div>
+                        ${data.title ? `<div><strong>標題:</strong> ${escapeHtml(data.title)}</div>` : ''}
+                        ${data.parentId ? `<div><strong>回覆於:</strong> #${data.parentId}</div>` : ''}
+                        <div><strong>回覆數:</strong> ${data.replyCount || 0}</div>
+                        <div style="margin-top: 8px;"><strong>內容:</strong></div>
+                        <div class="post-preview">${escapeHtml(data.content?.substring(0, 500))}${data.content?.length > 500 ? '...' : ''}</div>
+                    `;
+                } else {
+                    resultEl.className = 'tool-result error';
+                    resultEl.textContent = `✗ ${data.error || '查詢失敗'}`;
+                }
+            } catch (e) {
+                resultEl.className = 'tool-result error';
+                resultEl.textContent = '✗ 連線失敗';
+            }
+        }
+
+        // Delete post
+        async function deletePost() {
+            const postId = document.getElementById('delete-post-id').value;
+            const reason = document.getElementById('delete-reason').value.trim();
+            const resultEl = document.getElementById('delete-result');
+
+            if (!postId) {
+                resultEl.className = 'tool-result error';
+                resultEl.textContent = '請輸入貼文 ID';
+                return;
+            }
+
+            if (!reason) {
+                resultEl.className = 'tool-result error';
+                resultEl.textContent = '請輸入刪除原因';
+                return;
+            }
+
+            if (!confirm(`確定要刪除貼文 #${postId} 嗎？\n原因：${reason}`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/posts/${postId}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ reason })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    resultEl.className = 'tool-result success';
+                    resultEl.textContent = `✓ 貼文 #${postId} 已刪除`;
+                    document.getElementById('delete-post-id').value = '';
+                    document.getElementById('delete-reason').value = '';
+                    // Clear lookup result if it was showing this post
+                    document.getElementById('lookup-result').className = 'tool-result';
+                } else {
+                    resultEl.className = 'tool-result error';
+                    resultEl.textContent = `✗ ${data.error || '刪除失敗'}`;
+                }
+            } catch (e) {
+                resultEl.className = 'tool-result error';
+                resultEl.textContent = '✗ 連線失敗';
+            }
+        }
+
+        // Enter key handlers
         document.getElementById('token-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') login();
         });
 
-        // Enter key to refresh threads
         document.getElementById('thread-limit').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') loadLatestThreads();
         });
 
-        // Enter key to refresh replied threads
         document.getElementById('replied-limit').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') loadLatestRepliedThreads();
+        });
+
+        document.getElementById('lookup-post-id').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') lookupPost();
+        });
+
+        document.getElementById('delete-post-id').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('delete-reason').focus();
+        });
+
+        document.getElementById('delete-reason').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') deletePost();
         });
     </script>
 </body>

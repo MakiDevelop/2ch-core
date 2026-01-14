@@ -5,6 +5,7 @@ import {
   getThreadById,
   getReplies,
   isThreadLocked,
+  searchThreads,
 } from "../persistence/postgres";
 import { checkCreatePost } from "../guard/postGuard";
 import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
@@ -256,6 +257,93 @@ export async function getRepliesHandler(req: Request, res: Response) {
         offset,
         total: thread.replyCount,
       },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+// Rate limit map for search: ipHash -> lastSearchTime
+const searchRateLimitMap = new Map<string, number>();
+const SEARCH_COOLDOWN_MS = 10 * 1000; // 10 seconds
+
+// Clean up old entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, time] of searchRateLimitMap) {
+    if (now - time > SEARCH_COOLDOWN_MS * 2) {
+      searchRateLimitMap.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
+
+/**
+ * GET /search?q=keyword
+ * Search threads by title and content
+ */
+export async function searchHandler(req: Request, res: Response) {
+  try {
+    const query = req.query.q;
+
+    // Validate query
+    if (!query || typeof query !== "string") {
+      res.status(400).json({ error: "搜尋關鍵字為必填" });
+      return;
+    }
+
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length < 2) {
+      res.status(400).json({ error: "搜尋關鍵字至少需要 2 個字元" });
+      return;
+    }
+
+    if (trimmedQuery.length > 50) {
+      res.status(400).json({ error: "搜尋關鍵字不能超過 50 個字元" });
+      return;
+    }
+
+    // Rate limiting by IP
+    const realIp = getRealIp(req);
+    const ipHash = getIpHash(realIp);
+    const now = Date.now();
+    const lastSearch = searchRateLimitMap.get(ipHash);
+
+    if (lastSearch && now - lastSearch < SEARCH_COOLDOWN_MS) {
+      const waitSeconds = Math.ceil((SEARCH_COOLDOWN_MS - (now - lastSearch)) / 1000);
+      res.status(429).json({
+        error: `搜尋冷卻中，請等待 ${waitSeconds} 秒`,
+        retryAfter: waitSeconds,
+      });
+      return;
+    }
+
+    // Update rate limit
+    searchRateLimitMap.set(ipHash, now);
+
+    // Parse limit
+    const limitParam = req.query?.limit;
+    const parsed = typeof limitParam === "string" ? Number(limitParam) : NaN;
+    const limit = Number.isFinite(parsed)
+      ? Math.min(Math.max(parsed, 1), 30)
+      : 20;
+
+    // Execute search
+    const results = await searchThreads(trimmedQuery, limit);
+
+    res.json({
+      query: trimmedQuery,
+      count: results.length,
+      items: results.map((thread) => ({
+        id: thread.id,
+        title: thread.title,
+        content: thread.content?.substring(0, 200) + (thread.content && thread.content.length > 200 ? "..." : ""),
+        authorName: thread.authorName,
+        boardSlug: thread.boardSlug,
+        boardName: thread.boardName,
+        replyCount: thread.replyCount,
+        createdAt: thread.createdAt,
+      })),
     });
   } catch (err) {
     console.error(err);

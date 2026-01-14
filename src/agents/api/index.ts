@@ -5,6 +5,7 @@ export {
   getThreadHandler,
   getRepliesHandler,
   createReplyHandler,
+  searchHandler,
 } from "./posts";
 
 export {

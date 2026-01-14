@@ -7,6 +7,7 @@ import {
   getThreadHandler,
   getRepliesHandler,
   createReplyHandler,
+  searchHandler,
   listBoardsHandler,
   getBoardThreadsHandler,
   createBoardThreadHandler,
@@ -64,6 +65,9 @@ app.post("/posts", createPostHandler);
 app.get("/posts/:id/replies", getRepliesHandler); // 必须在 /posts/:id 之前
 app.post("/posts/:id/replies", createReplyHandler); // 回覆討論串
 app.get("/posts/:id", getThreadHandler);
+
+// search API
+app.get("/search", searchHandler);
 
 // SEO: sitemap and robots.txt
 app.get("/sitemap.xml", sitemapHandler);
