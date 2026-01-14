@@ -1,11 +1,14 @@
 name: Deploy to Production
 
 on:
+  schedule:
+    # 每天凌晨 4:00 (台北時間) = UTC 20:00
+    - cron: '0 20 * * *'
+  workflow_dispatch:  # 手動觸發（有特別需求時可立即部署）
   # push:
   #   branches: [main]
-  # TEMPORARILY DISABLED: Auto-deploy disabled for security PR merge
-  # Re-enable after running database migration and setting ADMIN_API_TOKEN
-  workflow_dispatch:  # 手動觸發
+  # NOTE: Auto-deploy on push is disabled to prevent accidental deployments
+  #       Deployments happen daily at 4:00 AM or can be triggered manually
 
 jobs:
   deploy:
