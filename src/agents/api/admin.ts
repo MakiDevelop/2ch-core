@@ -11,10 +11,10 @@ import {
 import { checkAdminAuth, checkDeleteReason } from "../guard/adminGuard";
 import crypto from "crypto";
 import os from "os";
-import { exec } from "child_process";
-import { promisify } from "util";
+import Docker from "dockerode";
 
-const execAsync = promisify(exec);
+// SECURITY FIX: Replaced shell exec with Docker SDK to prevent command injection
+const docker = new Docker();
 
 function getRealIp(req: Request): string {
   // With trust proxy enabled, req.ip is set from X-Forwarded-For by Express
@@ -295,29 +295,34 @@ function formatUptime(seconds: number): string {
 
 /**
  * 獲取容器狀態
+ * SECURITY FIX: Using Docker SDK instead of shell exec to prevent command injection
  */
 async function getContainerStatus(): Promise<any> {
   try {
-    const { stdout } = await execAsync(
-      'docker ps --format "{{.Names}}|{{.Status}}|{{.State}}" --filter "name=2ch-core" || echo "docker_unavailable"'
-    );
-
-    if (stdout.includes("docker_unavailable")) {
-      return { error: "Docker not available or no permission" };
-    }
-
-    const lines = stdout.trim().split("\n").filter(line => line);
-    const containers = lines.map(line => {
-      const [name, status, state] = line.split("|");
-      return { name, status, state };
+    // Use Docker SDK to list containers with name filter
+    const containers = await docker.listContainers({
+      all: false, // Only running containers
+      filters: {
+        name: ['2ch-core']
+      }
     });
 
     return {
       count: containers.length,
-      containers,
+      containers: containers.map(container => ({
+        name: container.Names[0]?.replace(/^\//, '') || 'unknown', // Remove leading slash
+        status: container.Status,
+        state: container.State,
+        created: container.Created,
+        image: container.Image
+      }))
     };
   } catch (error) {
-    return { error: "Failed to get container status" };
+    console.error('[DOCKER-STATUS] Error:', error);
+    return {
+      error: "Docker not available or no permission",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 }
 

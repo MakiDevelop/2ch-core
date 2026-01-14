@@ -23,6 +23,16 @@ import {
   threadPageMiddleware,
 } from "./agents/api";
 
+// SECURITY: Validate critical environment variables on startup
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.ADMIN_API_TOKEN || process.env.ADMIN_API_TOKEN.trim() === '') {
+    console.error('❌ FATAL: ADMIN_API_TOKEN must be set in production environment');
+    console.error('   Generate a secure token with: openssl rand -hex 32');
+    process.exit(1);
+  }
+  console.log('✅ Security: ADMIN_API_TOKEN is configured');
+}
+
 const app = express();
 
 // SECURITY: Trust only the first proxy (nginx)

@@ -37,6 +37,7 @@ export async function createPostHandler(req: Request, res: Response) {
 
     const realIp = getRealIp(req);
     const ipHash = getIpHash(realIp);
+    const userAgent = getUserAgent(req);
 
     // parentId：僅允許一層 reply（必須指向 thread）
     let normalizedParentId: number | null = null;
@@ -64,6 +65,7 @@ export async function createPostHandler(req: Request, res: Response) {
     const post = await createPost({
       content: guardResult.content,
       ipHash,
+      userAgent,
       parentId: normalizedParentId,
     });
 

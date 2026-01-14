@@ -101,25 +101,26 @@ export function checkIsAdmin(ipHash: string): AdminGuardResult {
 
 /**
  * 综合认证检查
- * 优先使用 Bearer Token，如果未配置则降级到 IP Hash（已弃用）
+ * SECURITY FIX: Removed fallback to IP Hash - Bearer Token is now mandatory
  */
 export function checkAdminAuth(
   authHeader: string | undefined,
   ipHash: string
 ): AdminGuardResult {
-  // First try Bearer token (recommended)
+  // SECURITY: Always require Bearer token authentication
   const tokenResult = checkAdminToken(authHeader);
   if (tokenResult.ok) {
     return tokenResult;
   }
 
-  // If token not configured, fall back to IP hash (deprecated)
+  // SECURITY FIX: No longer fall back to IP hash authentication
+  // If token not configured, return error instead of downgrading
   if (tokenResult.error === "token_not_configured") {
-    console.warn(
-      "[SECURITY WARNING] Using deprecated IP hash authentication. " +
-      "Please configure ADMIN_API_TOKEN for production."
-    );
-    return checkIsAdmin(ipHash);
+    return {
+      ok: false,
+      status: 503,
+      error: "Admin authentication not configured. Please set ADMIN_API_TOKEN in production environment.",
+    };
   }
 
   // Token was provided but invalid

@@ -25,7 +25,7 @@ export type CreatePostParams = {
   content: string;
   status?: number;
   ipHash: string;
-  realIp: string;
+  realIp?: string; // DEPRECATED: Will be removed in future migration for security
   userAgent: string;
   parentId?: number | null;
   boardId?: number | null;
@@ -70,7 +70,7 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
     content,
     status,
     ipHash,
-    realIp,
+    realIp, // DEPRECATED: Kept for backward compatibility but not stored
     userAgent,
     parentId,
     boardId,
@@ -82,17 +82,17 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
   const finalAuthorName = authorName || "名無しさん";
   const finalStatus = status ?? 0;
 
+  // SECURITY FIX: Removed real_ip from INSERT to prevent plaintext IP storage
   const result = await pool.query(
     `INSERT INTO posts (
-      content, status, ip_hash, real_ip, user_agent,
+      content, status, ip_hash, user_agent,
       parent_id, board_id, title, author_name, link_preview
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview`,
     [
       content,
       finalStatus,
       ipHash,
-      realIp,
       userAgent,
       parentId ?? null,
       boardId ?? null,
