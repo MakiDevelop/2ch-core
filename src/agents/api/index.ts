@@ -20,3 +20,8 @@ export {
   moderateByIpHandler,
   systemStatusHandler,
 } from "./admin";
+
+export {
+  sitemapHandler,
+  robotsHandler,
+} from "./sitemap";

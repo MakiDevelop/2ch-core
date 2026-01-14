@@ -4,7 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">討論串 - 2ch.tw</title>
+
+    <!-- SEO Meta Tags (will be updated dynamically) -->
+    <meta name="description" id="meta-description" content="2ch.tw 匿名討論串 - 對事不對人的公共討論空間。">
+    <meta name="keywords" id="meta-keywords" content="匿名討論,論壇,2ch,台灣,討論串">
+    <meta name="author" content="2ch.tw">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" id="canonical-url" href="https://2ch.tw/">
+
+    <!-- Open Graph (will be updated dynamically) -->
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="2ch.tw">
+    <meta property="og:title" id="og-title" content="討論串 - 2ch.tw">
+    <meta property="og:description" id="og-description" content="2ch.tw 匿名討論串 - 對事不對人的公共討論空間。">
+    <meta property="og:url" id="og-url" content="https://2ch.tw/">
+    <meta property="og:image" id="og-image" content="https://2ch.tw/og-image.jpg">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="article:published_time" id="og-published" content="">
+    <meta property="article:section" id="og-section" content="討論">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" id="twitter-title" content="討論串 - 2ch.tw">
+    <meta name="twitter:description" id="twitter-description" content="2ch.tw 匿名討論串 - 對事不對人的公共討論空間。">
+    <meta name="twitter:image" id="twitter-image" content="https://2ch.tw/og-image.jpg">
+
+    <!-- 預連接優化 -->
+    <link rel="preconnect" href="https://2ch.tw">
+    <link rel="dns-prefetch" href="https://2ch.tw">
+    <link rel="preconnect" href="https://www.youtube.com">
+    <!-- 預載入關鍵資源 -->
+    <link rel="preload" href="/css/style.css" as="style">
+    <link rel="preload" href="/js/thread.js" as="script">
     <link rel="stylesheet" href="/css/style.css">
+    <!-- Apply theme immediately and prefetch data -->
+    <script>
+    (function(){
+        var theme = localStorage.getItem('theme');
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        // Prefetch data
+        var id = location.pathname.match(/\/posts\/(\d+)/);
+        if(id) {
+            window.__prefetchThread = fetch('/posts/'+id[1]).then(function(r){return r.json()});
+            window.__prefetchReplies = fetch('/posts/'+id[1]+'/replies').then(function(r){return r.json()});
+        }
+    })();
+    </script>
 </head>
 <body>
     <div class="container">
@@ -50,7 +97,7 @@
                         <span class="board-name">生活／心情／負能量回收站</span>
                         <span class="board-desc">日常、抱怨、厭世</span>
                     </a>
-                    <a href="/boards/ent/threads" class="board-link">
+                    <a href="/boards/gossip/threads" class="board-link">
                         <span class="board-name">娛樂／名人／八卦</span>
                         <span class="board-desc">明星、網紅、八卦</span>
                     </a>
@@ -83,13 +130,49 @@
                             placeholder="暱稱（選填，預設為「名無しさん」）"
                             maxlength="50"
                         />
-                        <textarea
-                            id="reply-content"
-                            placeholder="匿名回覆，對事不對人。請遵守版規。"
-                            rows="4"
-                            required
-                            maxlength="10000"
-                        ></textarea>
+                        <div class="textarea-wrapper">
+                            <textarea
+                                id="reply-content"
+                                placeholder="匿名回覆，對事不對人。請遵守版規。"
+                                rows="4"
+                                required
+                                maxlength="10000"
+                            ></textarea>
+                            <div class="syntax-help" tabindex="0">
+                                <span class="help-icon">?</span>
+                                <div class="help-tooltip">
+                                    <div class="help-title">可使用語法</div>
+                                    <div class="help-section">
+                                        <div class="help-label">YouTube 影片</div>
+                                        <code>&lt;yt&gt;https://www.youtube.com/watch?v=VIDEO_ID&lt;/yt&gt;</code>
+                                        <code>&lt;yt&gt;https://youtu.be/VIDEO_ID&lt;/yt&gt;</code>
+                                        <div class="help-note">每則發文最多顯示 1 部影片</div>
+                                    </div>
+                                    <div class="help-section">
+                                        <div class="help-label">圖片</div>
+                                        <code>&lt;iu&gt;https://example.com/image.jpg&lt;/iu&gt;</code>
+                                        <div class="help-note">支援 jpg / jpeg / png / gif / webp</div>
+                                        <div class="help-note">每則發文最多顯示 3 張圖片</div>
+                                        <div class="help-note">僅支援 https 圖片網址</div>
+                                        <div class="help-note">不支援社群媒體圖片（IG/Threads/FB/X）</div>
+                                    </div>
+                                    <div class="help-section">
+                                        <div class="help-label">程式碼 / 固定格式文字</div>
+                                        <code>&lt;code&gt;
+print("Hello, world")
+&lt;/code&gt;</code>
+                                        <div class="help-note">保留換行與空白</div>
+                                        <div class="help-note">僅顯示，不會執行</div>
+                                        <div class="help-note">&lt;code&gt; 內不解析其他語法</div>
+                                    </div>
+                                    <div class="help-section help-footer">
+                                        <div class="help-note">不支援 Markdown 或 HTML</div>
+                                        <div class="help-note">除 &lt;yt&gt;、&lt;iu&gt;、&lt;code&gt; 以外的標籤皆視為一般文字</div>
+                                        <div class="help-note">不提供即時預覽，送出後即可看到結果</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="form-actions">
                             <span class="char-count">0 / 10000</span>
                             <button type="submit" id="submit-btn">回覆</button>
@@ -102,6 +185,7 @@
                 <div class="replies-container">
                     <div class="replies-header">
                         <h3>所有回覆</h3>
+                        <span class="reply-hint">點擊樓層可引用回覆</span>
                         <button id="refresh-btn" class="refresh-btn">重新整理</button>
                     </div>
                     <div id="replies-list" class="replies-list">
@@ -116,6 +200,75 @@
         </footer>
     </div>
 
-    <script src="/js/thread.js"></script>
+    <!-- 結構化資料：幫助 AI 瀏覽器理解頁面 (will be updated dynamically) -->
+    <script type="application/ld+json" id="structured-data">
+    {
+        "@context": "https://schema.org",
+        "@type": "DiscussionForumPosting",
+        "headline": "討論串",
+        "url": "https://2ch.tw/",
+        "datePublished": "",
+        "author": {
+            "@type": "Person",
+            "name": "匿名"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "2ch.tw",
+            "url": "https://2ch.tw/"
+        },
+        "interactionStatistic": {
+            "@type": "InteractionCounter",
+            "interactionType": "https://schema.org/CommentAction",
+            "userInteractionCount": 0
+        }
+    }
+    </script>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="切換深色模式">
+        <span class="icon-moon">🌙</span>
+        <span class="icon-sun">☀️</span>
+    </button>
+
+    <!-- DOMPurify for XSS protection -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <!-- 延遲載入主要 JS -->
+    <script src="/js/thread.js" defer></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile: Collapsible boards list
+        var boardsList = document.querySelector('.boards-list');
+        var boardsHeader = boardsList ? boardsList.querySelector('h2') : null;
+        if (boardsHeader) {
+            boardsHeader.addEventListener('click', function() {
+                boardsList.classList.toggle('expanded');
+            });
+        }
+
+        // Mobile tap toggle for syntax help
+        document.querySelectorAll('.syntax-help').forEach(function(el) {
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                el.classList.toggle('active');
+            });
+        });
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.syntax-help.active').forEach(function(el) {
+                el.classList.remove('active');
+            });
+        });
+
+        // Theme toggle
+        var themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function() {
+                var currentTheme = document.documentElement.getAttribute('data-theme');
+                var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        }
+    });
+    </script>
 </body>
 </html>

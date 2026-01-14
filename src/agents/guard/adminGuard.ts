@@ -2,21 +2,83 @@
  * Admin Guard
  * 管理员权限检查
  *
- * 权限检查方式：IP Hash 白名单
- * 配置方式：环境变量 ADMIN_IP_HASHES (逗号分隔)
+ * 认证方式（优先级从高到低）：
+ * 1. Bearer Token (ADMIN_API_TOKEN) - 推荐
+ * 2. IP Hash 白名单 (ADMIN_IP_HASHES) - 已弃用，仅作为后备
  */
+
+import crypto from "crypto";
 
 type AdminGuardResult =
   | { ok: true }
   | { ok: false; status: number; error: string };
 
 /**
- * 检查是否为管理员
+ * 检查 Bearer Token 认证
+ */
+export function checkAdminToken(authHeader: string | undefined): AdminGuardResult {
+  const adminToken = process.env.ADMIN_API_TOKEN;
+
+  // If no token configured, skip token auth
+  if (!adminToken || adminToken.trim() === "") {
+    return {
+      ok: false,
+      status: 401,
+      error: "token_not_configured",
+    };
+  }
+
+  // Check Authorization header
+  if (!authHeader) {
+    return {
+      ok: false,
+      status: 401,
+      error: "authorization header required",
+    };
+  }
+
+  // Parse Bearer token
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    return {
+      ok: false,
+      status: 401,
+      error: "invalid authorization format (expected: Bearer <token>)",
+    };
+  }
+
+  const providedToken = match[1];
+
+  // Use timing-safe comparison to prevent timing attacks
+  const tokenBuffer = Buffer.from(adminToken);
+  const providedBuffer = Buffer.from(providedToken);
+
+  if (tokenBuffer.length !== providedBuffer.length) {
+    return {
+      ok: false,
+      status: 403,
+      error: "invalid admin token",
+    };
+  }
+
+  if (!crypto.timingSafeEqual(tokenBuffer, providedBuffer)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "invalid admin token",
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * 检查是否为管理员（IP Hash - 已弃用）
  */
 export function checkIsAdmin(ipHash: string): AdminGuardResult {
   const adminHashes = process.env.ADMIN_IP_HASHES;
 
-  if (!adminHashes) {
+  if (!adminHashes || adminHashes.trim() === "") {
     return {
       ok: false,
       status: 503,
@@ -24,9 +86,9 @@ export function checkIsAdmin(ipHash: string): AdminGuardResult {
     };
   }
 
-  const allowedHashes = adminHashes.split(",").map((h) => h.trim());
+  const allowedHashes = adminHashes.split(",").map((h) => h.trim()).filter(h => h);
 
-  if (!allowedHashes.includes(ipHash)) {
+  if (allowedHashes.length === 0 || !allowedHashes.includes(ipHash)) {
     return {
       ok: false,
       status: 403,
@@ -35,6 +97,33 @@ export function checkIsAdmin(ipHash: string): AdminGuardResult {
   }
 
   return { ok: true };
+}
+
+/**
+ * 综合认证检查
+ * 优先使用 Bearer Token，如果未配置则降级到 IP Hash（已弃用）
+ */
+export function checkAdminAuth(
+  authHeader: string | undefined,
+  ipHash: string
+): AdminGuardResult {
+  // First try Bearer token (recommended)
+  const tokenResult = checkAdminToken(authHeader);
+  if (tokenResult.ok) {
+    return tokenResult;
+  }
+
+  // If token not configured, fall back to IP hash (deprecated)
+  if (tokenResult.error === "token_not_configured") {
+    console.warn(
+      "[SECURITY WARNING] Using deprecated IP hash authentication. " +
+      "Please configure ADMIN_API_TOKEN for production."
+    );
+    return checkIsAdmin(ipHash);
+  }
+
+  // Token was provided but invalid
+  return tokenResult;
 }
 
 /**

@@ -15,44 +15,27 @@ import {
   unlockPostHandler,
   moderateByIpHandler,
   systemStatusHandler,
+  sitemapHandler,
+  robotsHandler,
 } from "./agents/api";
 
 const app = express();
 
-// middleware: disable ETag
-app.set('etag', false);
+// SECURITY: Trust only the first proxy (nginx)
+// This ensures req.ip uses X-Forwarded-For set by nginx, not client-spoofed values
+app.set("trust proxy", 1);
 
-// middleware: set no-cache headers for all dynamic content
-// AI Browser / Client optimized: explicit max-age=0
+// middleware: set cache validation headers for dynamic content
+// no-cache = browser can cache but must validate before use (allows 304 Not Modified)
 app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
   next();
 });
 
 // middleware: parse json body
 app.use(bodyParser.json());
 
-// middleware: add Clear-Site-Data header for HTML pages to force cache clear
-// This must be BEFORE express.static to apply to static HTML files
-app.use((req, res, next) => {
-  // Only add Clear-Site-Data for HTML page requests (not API endpoints)
-  if (req.path.endsWith('.html') || req.path === '/' ||
-      req.path.match(/^\/boards\/[^\/]+\/threads$/) ||
-      req.path.match(/^\/posts\/\d+$/)) {
-    res.setHeader('Clear-Site-Data', '"cache"');
-  }
-  next();
-});
-
-// middleware: serve static files from public folder
-app.use(express.static('public', {
-  etag: false,
-  lastModified: false,
-  maxAge: 0
-}));
+// NOTE: Clear-Site-Data header removed - was causing 10+ second delays on some networks
 
 // health check
 app.get("/health", (_req, res) => {
@@ -77,6 +60,13 @@ app.post("/posts", createPostHandler);
 app.get("/posts/:id/replies", getRepliesHandler); // 必须在 /posts/:id 之前
 app.post("/posts/:id/replies", createReplyHandler); // 回覆討論串
 app.get("/posts/:id", getThreadHandler);
+
+// SEO: sitemap and robots.txt
+app.get("/sitemap.xml", sitemapHandler);
+app.get("/robots.txt", robotsHandler);
+
+// middleware: serve static files from public folder (AFTER API routes)
+app.use(express.static('public'));
 
 // start server
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;

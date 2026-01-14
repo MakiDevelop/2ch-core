@@ -47,8 +47,10 @@ services:
       - "3000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      APP_SECRET: ${APP_SECRET}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN}
       ADMIN_IP_HASHES: ${ADMIN_IP_HASHES}
     depends_on:
       postgres:

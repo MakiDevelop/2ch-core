@@ -6,6 +6,7 @@ import {
   createPost,
 } from "../persistence/postgres";
 import { checkCreatePost } from "../guard/postGuard";
+import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
 import crypto from "crypto";
 
 function getRealIp(req: Request): string {
@@ -136,6 +137,18 @@ export async function createBoardThreadHandler(req: Request, res: Response) {
       return;
     }
 
+    // 嘗試解析第一個 URL 的 link preview（不阻塞，3秒 timeout）
+    let linkPreview = null;
+    const firstUrl = extractFirstUrl(guardResult.content);
+    if (firstUrl) {
+      try {
+        linkPreview = await fetchLinkPreview(firstUrl);
+      } catch (err) {
+        // 解析失敗就忽略，保持 auto-link
+        console.log('[LinkPreview] Failed to fetch:', firstUrl);
+      }
+    }
+
     // 创建主题（parentId = null，指定 boardId）
     const thread = await createPost({
       content: guardResult.content,
@@ -146,6 +159,7 @@ export async function createBoardThreadHandler(req: Request, res: Response) {
       boardId: board.id,
       title: title.trim(),
       authorName: authorName?.trim() || "名無しさん",
+      linkPreview,
     });
 
     res.status(201).json(thread);

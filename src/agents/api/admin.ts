@@ -6,7 +6,7 @@ import {
   deletePostsByIpHash,
   getSystemStats,
 } from "../persistence/postgres";
-import { checkIsAdmin, checkDeleteReason } from "../guard/adminGuard";
+import { checkAdminAuth, checkDeleteReason } from "../guard/adminGuard";
 import crypto from "crypto";
 import os from "os";
 import { exec } from "child_process";
@@ -14,14 +14,17 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-function getIpHash(req: Request): string {
-  const forwarded = req.headers["x-forwarded-for"];
-  const ip =
-    typeof forwarded === "string"
-      ? forwarded.split(",")[0].trim()
-      : req.ip ?? "unknown";
+function getRealIp(req: Request): string {
+  // With trust proxy enabled, req.ip is set from X-Forwarded-For by Express
+  // Nginx overwrites X-Forwarded-For with $remote_addr to prevent spoofing
+  return req.ip ?? "unknown";
+}
 
-  return crypto.createHash("sha256").update(ip).digest("hex");
+function getIpHash(req: Request): string {
+  const ip = getRealIp(req);
+  // Use HMAC with server secret to prevent rainbow table attacks on IPv4
+  const secret = process.env.APP_SECRET || "default-secret-change-me";
+  return crypto.createHmac("sha256", secret).update(ip).digest("hex");
 }
 
 /**
@@ -40,9 +43,10 @@ export async function deletePostHandler(req: Request, res: Response) {
     }
 
     const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
 
-    // 检查管理员权限
-    const adminCheck = checkIsAdmin(ipHash);
+    // 检查管理员权限 (Bearer Token 优先，IP Hash 后备)
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
     if (!adminCheck.ok) {
       res.status(adminCheck.status).json({ error: adminCheck.error });
       return;
@@ -90,9 +94,10 @@ export async function lockPostHandler(req: Request, res: Response) {
     }
 
     const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
 
-    // 检查管理员权限
-    const adminCheck = checkIsAdmin(ipHash);
+    // 检查管理员权限 (Bearer Token 优先，IP Hash 后备)
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
     if (!adminCheck.ok) {
       res.status(adminCheck.status).json({ error: adminCheck.error });
       return;
@@ -132,9 +137,10 @@ export async function unlockPostHandler(req: Request, res: Response) {
     }
 
     const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
 
-    // 检查管理员权限
-    const adminCheck = checkIsAdmin(ipHash);
+    // 检查管理员权限 (Bearer Token 优先，IP Hash 后备)
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
     if (!adminCheck.ok) {
       res.status(adminCheck.status).json({ error: adminCheck.error });
       return;
@@ -181,9 +187,10 @@ export async function moderateByIpHandler(req: Request, res: Response) {
     }
 
     const adminIpHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
 
-    // 检查管理员权限
-    const adminCheck = checkIsAdmin(adminIpHash);
+    // 检查管理员权限 (Bearer Token 优先，IP Hash 后备)
+    const adminCheck = checkAdminAuth(authHeader, adminIpHash);
     if (!adminCheck.ok) {
       res.status(adminCheck.status).json({ error: adminCheck.error });
       return;
@@ -223,9 +230,10 @@ export async function moderateByIpHandler(req: Request, res: Response) {
 export async function systemStatusHandler(req: Request, res: Response) {
   try {
     const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
 
-    // 檢查管理員權限
-    const adminCheck = checkIsAdmin(ipHash);
+    // 檢查管理員權限 (Bearer Token 优先，IP Hash 后备)
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
     if (!adminCheck.ok) {
       res.status(adminCheck.status).json({ error: adminCheck.error });
       return;

@@ -13,6 +13,63 @@ const getBoardSlug = () => {
 const boardSlug = getBoardSlug();
 const API_BASE = '';
 
+// Update meta tags for SEO
+const updateMetaTags = (board) => {
+    const boardName = board.name || '討論版';
+    const boardDesc = board.description || '';
+    const title = `${boardName} - 2ch.tw`;
+    const description = `${boardName} - ${boardDesc} | 2ch.tw 匿名討論版`;
+    const url = `https://2ch.tw/boards/${boardSlug}/threads`;
+
+    // Update title
+    document.title = title;
+
+    // Update meta description
+    const metaDesc = document.getElementById('meta-description');
+    if (metaDesc) metaDesc.setAttribute('content', description);
+
+    // Update canonical URL
+    const canonical = document.getElementById('canonical-url');
+    if (canonical) canonical.setAttribute('href', url);
+
+    // Update Open Graph
+    const ogTitle = document.getElementById('og-title');
+    const ogDesc = document.getElementById('og-description');
+    const ogUrl = document.getElementById('og-url');
+    if (ogTitle) ogTitle.setAttribute('content', title);
+    if (ogDesc) ogDesc.setAttribute('content', description);
+    if (ogUrl) ogUrl.setAttribute('content', url);
+
+    // Update Twitter Card
+    const twitterTitle = document.getElementById('twitter-title');
+    const twitterDesc = document.getElementById('twitter-description');
+    if (twitterTitle) twitterTitle.setAttribute('content', title);
+    if (twitterDesc) twitterDesc.setAttribute('content', description);
+
+    // Update structured data
+    const structuredData = document.getElementById('structured-data');
+    if (structuredData) {
+        const data = {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": title,
+            "description": description,
+            "url": url,
+            "isPartOf": {
+                "@type": "WebSite",
+                "name": "2ch.tw",
+                "url": "https://2ch.tw/"
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "2ch.tw",
+                "url": "https://2ch.tw/"
+            }
+        };
+        structuredData.textContent = JSON.stringify(data);
+    }
+};
+
 // Format date
 const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -41,12 +98,18 @@ const loadBoard = async () => {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads?v=${APP_VERSION}`);
-        if (!response.ok) {
-            throw new Error('無法載入板塊');
+        // 使用預載入的資料（如果有的話）
+        let data;
+        if (window.__prefetchData) {
+            data = await window.__prefetchData;
+            window.__prefetchData = null; // 只用一次
+        } else {
+            const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads?v=${APP_VERSION}`);
+            if (!response.ok) {
+                throw new Error('無法載入板塊');
+            }
+            data = await response.json();
         }
-
-        const data = await response.json();
 
         // Update page title and header
         const pageTitleEl = document.getElementById('page-title');
@@ -56,6 +119,9 @@ const loadBoard = async () => {
         if (pageTitleEl) pageTitleEl.textContent = `${data.board.name} - 2ch.tw`;
         if (boardNameEl) boardNameEl.textContent = data.board.name;
         if (boardDescEl) boardDescEl.textContent = data.board.description || '';
+
+        // Update meta tags for SEO
+        updateMetaTags(data.board);
 
         // Render threads
         renderThreads(data.threads);

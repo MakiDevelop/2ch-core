@@ -3,15 +3,71 @@
  * Very first, minimal protection layer
  */
 
-const MAX_CONTENT_LENGTH = 1000;
+const MAX_CONTENT_LENGTH = 10000;
 // simple in-memory rate limit (per process)
-const POST_INTERVAL_MS = 10_000;
+const POST_INTERVAL_MS = 3_000;
 
 const lastPostAtByIpHash: Record<string, number> = {};
 
 export type PostGuardResult =
   | { ok: true; content: string }
   | { ok: false; status: number; error: string };
+
+/**
+ * Validate URL for <iu> and <yt> tags
+ * Returns true if URL is safe, false otherwise
+ */
+function isValidEmbedUrl(url: string): boolean {
+  const trimmed = url.trim();
+
+  // Must start with https://
+  if (!trimmed.startsWith('https://')) {
+    return false;
+  }
+
+  // Must not contain dangerous characters that could break out of attributes
+  // These chars should not appear in a properly encoded URL
+  const dangerousChars = /[<>"'`\s\\]/;
+  if (dangerousChars.test(trimmed)) {
+    return false;
+  }
+
+  // Try to parse as URL to ensure it's valid
+  try {
+    new URL(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Sanitize content by validating <iu> and <yt> tags
+ * Invalid URLs are escaped to prevent XSS
+ */
+function sanitizeEmbedTags(content: string): string {
+  let result = content;
+
+  // Sanitize <iu> tags
+  result = result.replace(/<iu>([\s\S]*?)<\/iu>/gi, (match, url) => {
+    if (isValidEmbedUrl(url)) {
+      return match; // Keep valid URLs as-is
+    }
+    // Escape invalid URLs - convert to plain text
+    return `[無效圖片連結]`;
+  });
+
+  // Sanitize <yt> tags
+  result = result.replace(/<yt>([\s\S]*?)<\/yt>/gi, (match, url) => {
+    if (isValidEmbedUrl(url)) {
+      return match; // Keep valid URLs as-is
+    }
+    // Escape invalid URLs - convert to plain text
+    return `[無效影片連結]`;
+  });
+
+  return result;
+}
 
 export function checkCreatePost(input: {
   content: unknown;
@@ -50,5 +106,8 @@ export function checkCreatePost(input: {
 
   lastPostAtByIpHash[ipHash] = now;
 
-  return { ok: true, content: normalized };
+  // Sanitize embed tags to prevent XSS
+  const sanitized = sanitizeEmbedTags(normalized);
+
+  return { ok: true, content: sanitized };
 }

@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "dev": "tsx src/main.ts",
-    "start": "tsx src/main.ts"
+    "dev": "npx tsx src/main.ts",
+    "start": "npx tsx src/main.ts"
   },
   "dependencies": {
     "body-parser": "^2.2.1",

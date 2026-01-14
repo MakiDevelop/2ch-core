@@ -4,22 +4,22 @@ import {
   listPosts,
   getThreadById,
   getReplies,
+  isThreadLocked,
 } from "../persistence/postgres";
 import { checkCreatePost } from "../guard/postGuard";
+import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
 import crypto from "crypto";
 
 function getRealIp(req: Request): string {
-  const forwarded = req.headers["x-forwarded-for"];
-  const ip =
-    typeof forwarded === "string"
-      ? forwarded.split(",")[0].trim()
-      : req.ip ?? "unknown";
-
-  return ip;
+  // With trust proxy enabled, req.ip is set from X-Forwarded-For by Express
+  // Nginx overwrites X-Forwarded-For with $remote_addr to prevent spoofing
+  return req.ip ?? "unknown";
 }
 
 function getIpHash(ip: string): string {
-  return crypto.createHash("sha256").update(ip).digest("hex");
+  // Use HMAC with server secret to prevent rainbow table attacks on IPv4
+  const secret = process.env.APP_SECRET || "default-secret-change-me";
+  return crypto.createHmac("sha256", secret).update(ip).digest("hex");
 }
 
 function getUserAgent(req: Request): string {
@@ -34,7 +34,8 @@ export async function createPostHandler(req: Request, res: Response) {
   try {
     const { content, parentId } = req.body;
 
-    const ipHash = getIpHash(req);
+    const realIp = getRealIp(req);
+    const ipHash = getIpHash(realIp);
 
     // parentId：僅允許一層 reply（必須指向 thread）
     let normalizedParentId: number | null = null;
@@ -143,6 +144,19 @@ export async function createReplyHandler(req: Request, res: Response) {
       return;
     }
 
+    // 檢查是否已達 999 樓上限
+    if (thread.replyCount >= 999) {
+      res.status(403).json({ error: "此討論串已達 999 樓上限，已封存無法回覆" });
+      return;
+    }
+
+    // 檢查討論串是否已被鎖定
+    const locked = await isThreadLocked(threadId);
+    if (locked) {
+      res.status(403).json({ error: "此討論串已被鎖定，無法回覆" });
+      return;
+    }
+
     const realIp = getRealIp(req);
     const ipHash = getIpHash(realIp);
     const userAgent = getUserAgent(req);
@@ -158,6 +172,18 @@ export async function createReplyHandler(req: Request, res: Response) {
       return;
     }
 
+    // 嘗試解析第一個 URL 的 link preview（不阻塞，3秒 timeout）
+    let linkPreview = null;
+    const firstUrl = extractFirstUrl(guardResult.content);
+    if (firstUrl) {
+      try {
+        linkPreview = await fetchLinkPreview(firstUrl);
+      } catch (err) {
+        // 解析失敗就忽略，保持 auto-link
+        console.log('[LinkPreview] Failed to fetch:', firstUrl);
+      }
+    }
+
     // 创建回复（指定 parentId）
     const reply = await createPost({
       content: guardResult.content,
@@ -167,6 +193,7 @@ export async function createReplyHandler(req: Request, res: Response) {
       parentId: threadId,
       boardId: thread.boardId ?? null,
       authorName: authorName?.trim() || "名無しさん",
+      linkPreview,
     });
 
     res.status(201).json(reply);

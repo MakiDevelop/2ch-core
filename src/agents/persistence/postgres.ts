@@ -1,5 +1,13 @@
 import { Pool } from "pg";
 
+export type LinkPreview = {
+  url: string;
+  title: string | null;
+  description: string | null;
+  image: string | null;
+  siteName: string | null;
+} | null;
+
 export type Post = {
   id: number;
   content: string;
@@ -10,6 +18,7 @@ export type Post = {
   boardId?: number | null;
   title?: string | null;
   authorName: string;
+  linkPreview?: LinkPreview;
 };
 
 export type CreatePostParams = {
@@ -22,6 +31,7 @@ export type CreatePostParams = {
   boardId?: number | null;
   title?: string | null;
   authorName?: string;
+  linkPreview?: LinkPreview;
 };
 
 export type ThreadDetail = {
@@ -37,6 +47,7 @@ export type ThreadDetail = {
   title?: string | null;
   authorName: string;
   board?: { slug: string; name: string } | null;
+  linkPreview?: LinkPreview;
 };
 
 export type Board = {
@@ -65,6 +76,7 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
     boardId,
     title,
     authorName,
+    linkPreview,
   } = params;
 
   const finalAuthorName = authorName || "名無しさん";
@@ -73,9 +85,9 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
   const result = await pool.query(
     `INSERT INTO posts (
       content, status, ip_hash, real_ip, user_agent,
-      parent_id, board_id, title, author_name
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    RETURNING id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name`,
+      parent_id, board_id, title, author_name, link_preview
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    RETURNING id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview`,
     [
       content,
       finalStatus,
@@ -86,6 +98,7 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
       boardId ?? null,
       title ?? null,
       finalAuthorName,
+      linkPreview ? JSON.stringify(linkPreview) : null,
     ],
   );
 
@@ -100,6 +113,7 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
     boardId: row.board_id,
     title: row.title,
     authorName: row.author_name,
+    linkPreview: row.link_preview,
   };
 }
 
@@ -132,7 +146,7 @@ export async function getThreadById(
   const result = await pool.query(
     `SELECT
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id,
-      p.title, p.author_name, p.board_id,
+      p.title, p.author_name, p.board_id, p.link_preview,
       b.slug as board_slug, b.name as board_name,
       (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count,
       (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id) as last_reply_at
@@ -162,6 +176,7 @@ export async function getThreadById(
       : null,
     replyCount: parseInt(row.reply_count, 10),
     lastReplyAt: row.last_reply_at,
+    linkPreview: row.link_preview,
   };
 }
 
@@ -174,7 +189,7 @@ export async function getReplies(
   offset: number,
 ): Promise<Post[]> {
   const result = await pool.query(
-    `SELECT id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name
+    `SELECT id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview
     FROM posts
     WHERE parent_id = $1
     ORDER BY id ASC
@@ -192,6 +207,7 @@ export async function getReplies(
     boardId: row.board_id,
     title: row.title,
     authorName: row.author_name,
+    linkPreview: row.link_preview,
   }));
 }
 
@@ -493,4 +509,59 @@ export async function getSystemStats(): Promise<any> {
       error: 'Failed to get database stats',
     };
   }
+}
+
+/**
+ * 獲取 Sitemap 資料（用於 SEO）
+ * 返回所有活躍討論串的 ID 和最後更新時間
+ */
+export interface SitemapEntry {
+  id: number;
+  updatedAt: Date;
+  boardSlug: string;
+}
+
+export async function getSitemapData(): Promise<{
+  threads: SitemapEntry[];
+  boards: { slug: string; updatedAt: Date }[];
+}> {
+  // 獲取所有活躍討論串（含最新回覆時間）
+  const threadsResult = await pool.query(`
+    SELECT
+      t.id,
+      b.slug as board_slug,
+      GREATEST(
+        t.created_at,
+        COALESCE((SELECT MAX(created_at) FROM posts WHERE parent_id = t.id), t.created_at)
+      ) as updated_at
+    FROM posts t
+    JOIN boards b ON t.board_id = b.id
+    WHERE t.parent_id IS NULL
+      AND t.status = 0
+    ORDER BY updated_at DESC
+    LIMIT 1000
+  `);
+
+  // 獲取所有板塊（含最新討論串時間）
+  const boardsResult = await pool.query(`
+    SELECT
+      b.slug,
+      COALESCE(MAX(p.created_at), b.created_at) as updated_at
+    FROM boards b
+    LEFT JOIN posts p ON p.board_id = b.id AND p.parent_id IS NULL AND p.status = 0
+    GROUP BY b.id, b.slug, b.created_at
+    ORDER BY updated_at DESC
+  `);
+
+  return {
+    threads: threadsResult.rows.map(row => ({
+      id: row.id,
+      updatedAt: row.updated_at,
+      boardSlug: row.board_slug,
+    })),
+    boards: boardsResult.rows.map(row => ({
+      slug: row.slug,
+      updatedAt: row.updated_at,
+    })),
+  };
 }

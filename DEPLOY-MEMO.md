@@ -31,7 +31,7 @@ git push origin main
 
 ```bash
 # 登入伺服器
-ssh maki@107.191.62.114
+ssh root@139.180.199.219 （SSH Keys）
 
 # 執行以下指令
 cd /opt/2ch-core
@@ -131,7 +131,7 @@ chmod +x scripts/deploy-commands.sh
 cd /Users/maki/GitHub/2ch-core && git push origin main
 
 # 2. 登入伺服器並部署
-ssh maki@107.191.62.114 << 'ENDSSH'
+ssh root@139.180.199.219 << 'ENDSSH'
 cd /opt/2ch-core
 git pull origin main
 chmod +x scripts/deploy-commands.sh
