@@ -26,12 +26,12 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            # Sync nginx config (git pull already updated the files)
+            docker compose -f docker-compose.deploy.yml exec -T nginx nginx -s reload || true
+
             # Rebuild and restart API
             docker compose -f docker-compose.deploy.yml build api
             docker compose -f docker-compose.deploy.yml up -d --force-recreate --no-deps api
-
-            # Reload nginx (in case config changed)
-            docker compose -f docker-compose.deploy.yml exec -T nginx nginx -s reload || true
 
             echo "Deployment completed at $(date)"
 

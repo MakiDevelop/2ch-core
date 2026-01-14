@@ -34,6 +34,10 @@ jobs:
             # Sync public to nginx mount
             rsync -av --delete public/ /opt/2ch-core/public-dev/
 
+            # Sync nginx config and reload
+            cp nginx/conf.d/dev.2ch.conf /opt/2ch-core/nginx/conf.d/
+            docker exec 2ch-core-nginx nginx -s reload || true
+
             # Build and restart api-dev
             cd /opt/2ch-core
             docker compose -f docker-compose.deploy.yml build api-dev --build-arg CACHEBUST=$(date +%s)
