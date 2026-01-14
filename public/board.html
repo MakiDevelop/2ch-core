@@ -43,7 +43,8 @@
         }
         // Prefetch data
         var slug = location.pathname.match(/\/boards\/([^\/]+)/);
-        if(slug) window.__prefetchData = fetch('/boards/'+slug[1]+'/threads').then(function(r){return r.json()});
+        var jsonHeaders = {headers:{'Accept':'application/json'}};
+        if(slug) window.__prefetchData = fetch('/boards/'+slug[1]+'/threads',jsonHeaders).then(function(r){return r.json()});
     })();
     </script>
 </head>
