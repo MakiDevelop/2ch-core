@@ -87,3 +87,4 @@ git reset --hard <commit-hash>
 docker compose -f docker-compose.deploy.yml build api
 docker compose -f docker-compose.deploy.yml up -d --force-recreate --no-deps api
 ```
+
