@@ -28,3 +28,5 @@ export {
   sitemapHandler,
   robotsHandler,
 } from "./sitemap";
+
+export { threadPageMiddleware } from "./threadPage";

@@ -20,6 +20,7 @@ import {
   listThreadsByLastReplyHandler,
   sitemapHandler,
   robotsHandler,
+  threadPageMiddleware,
 } from "./agents/api";
 
 const app = express();
@@ -39,6 +40,10 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 
 // NOTE: Clear-Site-Data header removed - was causing 10+ second delays on some networks
+
+// SSR: thread page with dynamic OG meta tags (for social sharing)
+// Must be BEFORE API routes to intercept browser requests
+app.use(threadPageMiddleware);
 
 // health check
 app.get("/health", (_req, res) => {
