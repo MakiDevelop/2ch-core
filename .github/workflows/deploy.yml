@@ -1,8 +1,10 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches: [main]
+  # push:
+  #   branches: [main]
+  # TEMPORARILY DISABLED: Auto-deploy disabled for security PR merge
+  # Re-enable after running database migration and setting ADMIN_API_TOKEN
   workflow_dispatch:  # 手動觸發
 
 jobs:
