@@ -293,7 +293,9 @@ const loadThread = async () => {
             threadData = await window.__prefetchThread;
             window.__prefetchThread = null;
         } else {
-            const threadResponse = await fetch(`${API_BASE}/posts/${threadId}?v=${APP_VERSION}`);
+            const threadResponse = await fetch(`${API_BASE}/posts/${threadId}?v=${APP_VERSION}`, {
+                headers: { 'Accept': 'application/json' }
+            });
             if (!threadResponse.ok) {
                 throw new Error('無法載入討論串');
             }
@@ -308,7 +310,9 @@ const loadThread = async () => {
             repliesData = await window.__prefetchReplies;
             window.__prefetchReplies = null;
         } else {
-            const repliesResponse = await fetch(`${API_BASE}/posts/${threadId}/replies?v=${APP_VERSION}`);
+            const repliesResponse = await fetch(`${API_BASE}/posts/${threadId}/replies?v=${APP_VERSION}`, {
+                headers: { 'Accept': 'application/json' }
+            });
             if (!repliesResponse.ok) {
                 throw new Error('無法載入回覆');
             }

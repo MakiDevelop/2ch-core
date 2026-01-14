@@ -104,7 +104,9 @@ const loadBoard = async () => {
             data = await window.__prefetchData;
             window.__prefetchData = null; // 只用一次
         } else {
-            const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads?v=${APP_VERSION}`);
+            const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads?v=${APP_VERSION}`, {
+                headers: { 'Accept': 'application/json' }
+            });
             if (!response.ok) {
                 throw new Error('無法載入板塊');
             }

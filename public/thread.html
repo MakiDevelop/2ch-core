@@ -47,8 +47,9 @@
         // Prefetch data
         var id = location.pathname.match(/\/posts\/(\d+)/);
         if(id) {
-            window.__prefetchThread = fetch('/posts/'+id[1]).then(function(r){return r.json()});
-            window.__prefetchReplies = fetch('/posts/'+id[1]+'/replies').then(function(r){return r.json()});
+            var jsonHeaders = {headers:{'Accept':'application/json'}};
+            window.__prefetchThread = fetch('/posts/'+id[1],jsonHeaders).then(function(r){return r.json()});
+            window.__prefetchReplies = fetch('/posts/'+id[1]+'/replies',jsonHeaders).then(function(r){return r.json()});
         }
     })();
     </script>
