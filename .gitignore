@@ -97,3 +97,9 @@ data/
 *.tsv
 *.jsonl
 *.parquet
+
+# =========================
+# MCP (Model Context Protocol)
+# =========================
+
+.mcp.json
