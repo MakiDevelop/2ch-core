@@ -2013,6 +2013,86 @@ footer {
 }
 
 /* ================================================
+   Pagination
+   ================================================ */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-secondary);
+    flex-wrap: wrap;
+}
+
+.pagination-btn {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled):not(.active) {
+    background: var(--bg-hover);
+    border-color: var(--link-color);
+    color: var(--link-color);
+}
+
+.pagination-btn.active {
+    background: linear-gradient(135deg, #5b8ef4, #7c6cf4);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(91, 142, 244, 0.3);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+    color: var(--text-muted);
+    padding: 0 4px;
+    user-select: none;
+}
+
+.pagination-info {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin-left: 12px;
+}
+
+@media (max-width: 768px) {
+    .pagination {
+        gap: 6px;
+    }
+
+    .pagination-btn {
+        min-width: 36px;
+        height: 36px;
+        padding: 0 10px;
+        font-size: 0.9em;
+    }
+
+    .pagination-info {
+        flex-basis: 100%;
+        text-align: center;
+        margin: 8px 0 0 0;
+    }
+}
+
+/* ================================================
    Skeleton Loading Animation
    ================================================ */
 .skeleton {

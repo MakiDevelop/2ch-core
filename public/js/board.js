@@ -1,7 +1,7 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260117b';
+const APP_VERSION = '20260117c';
 
 // Get board slug from URL
 const getBoardSlug = () => {
@@ -16,11 +16,30 @@ const API_BASE = '';
 // Sort state management
 let currentSort = localStorage.getItem('threadSort') || 'latest';
 
+// Pagination state
+const PAGE_SIZE = 20;
+let currentPage = 1;
+let totalItems = 0;
+
 const setSort = (sort) => {
     currentSort = sort;
     localStorage.setItem('threadSort', sort);
+    currentPage = 1; // Reset to first page when changing sort
     updateSortButtons();
     loadBoard();
+};
+
+// Go to specific page
+const goToPage = (page) => {
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    loadBoard();
+    // Scroll to top of threads container
+    const container = document.querySelector('.threads-container');
+    if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 };
 
 const updateSortButtons = () => {
@@ -162,21 +181,29 @@ const loadBoard = async () => {
     showLoading();
 
     try {
-        // 使用預載入的資料（如果有的話，但排序需重新載入）
+        // Calculate offset from current page
+        const offset = (currentPage - 1) * PAGE_SIZE;
+
+        // 使用預載入的資料（如果有的話，但只限第一頁且排序匹配）
         let data;
         const prefetchSort = window.__prefetchSort;
-        if (window.__prefetchData && prefetchSort === currentSort) {
+        if (window.__prefetchData && prefetchSort === currentSort && currentPage === 1) {
             data = await window.__prefetchData;
             window.__prefetchData = null; // 只用一次
         } else {
             window.__prefetchData = null; // 清除不匹配的預載入資料
-            const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads?sort=${currentSort}&v=${APP_VERSION}`, {
+            const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads?sort=${currentSort}&limit=${PAGE_SIZE}&offset=${offset}&v=${APP_VERSION}`, {
                 headers: { 'Accept': 'application/json' }
             });
             if (!response.ok) {
                 throw new Error('無法載入板塊');
             }
             data = await response.json();
+        }
+
+        // Update total items from pagination data
+        if (data.pagination) {
+            totalItems = data.pagination.total || 0;
         }
 
         // Update page title and header
@@ -199,6 +226,9 @@ const loadBoard = async () => {
 
         // Render threads
         renderThreads(data.threads);
+
+        // Render pagination
+        renderPagination();
     } catch (error) {
         console.error('Error loading board:', error);
         showError('載入失敗');
@@ -223,6 +253,12 @@ const showLoading = () => {
     `).join('');
 
     container.innerHTML = skeletonHTML;
+
+    // Clear pagination while loading
+    const paginationContainer = document.getElementById('pagination');
+    if (paginationContainer) {
+        paginationContainer.innerHTML = '';
+    }
 };
 
 // Show error state
@@ -270,6 +306,106 @@ const renderThreads = (threads) => {
     `).join('');
 
     container.innerHTML = threadsHTML;
+};
+
+// Render pagination controls
+const renderPagination = () => {
+    let paginationContainer = document.getElementById('pagination');
+
+    // Create pagination container if it doesn't exist
+    if (!paginationContainer) {
+        const threadsContainer = document.querySelector('.threads-container');
+        if (!threadsContainer) return;
+
+        paginationContainer = document.createElement('div');
+        paginationContainer.id = 'pagination';
+        paginationContainer.className = 'pagination';
+        threadsContainer.appendChild(paginationContainer);
+    }
+
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+
+    // Don't show pagination if only one page or no items
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+
+    // Previous button
+    html += `<button class="pagination-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+
+    // Page numbers with ellipsis logic
+    const pages = generatePageNumbers(currentPage, totalPages);
+
+    pages.forEach((page, index) => {
+        if (page === '...') {
+            html += `<span class="pagination-ellipsis">...</span>`;
+        } else {
+            html += `<button class="pagination-btn ${page === currentPage ? 'active' : ''}" onclick="goToPage(${page})">${page}</button>`;
+        }
+    });
+
+    // Next button
+    html += `<button class="pagination-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
+
+    // Page info
+    const startItem = (currentPage - 1) * PAGE_SIZE + 1;
+    const endItem = Math.min(currentPage * PAGE_SIZE, totalItems);
+    html += `<span class="pagination-info">${startItem}-${endItem} / ${totalItems}</span>`;
+
+    paginationContainer.innerHTML = html;
+};
+
+// Generate page numbers with ellipsis
+const generatePageNumbers = (current, total) => {
+    const pages = [];
+    const delta = 2; // Number of pages to show on each side of current
+
+    if (total <= 7) {
+        // Show all pages if total is small
+        for (let i = 1; i <= total; i++) {
+            pages.push(i);
+        }
+    } else {
+        // Always show first page
+        pages.push(1);
+
+        // Calculate start and end of middle section
+        let start = Math.max(2, current - delta);
+        let end = Math.min(total - 1, current + delta);
+
+        // Adjust if at the beginning
+        if (current <= delta + 2) {
+            end = Math.min(total - 1, delta * 2 + 2);
+        }
+
+        // Adjust if at the end
+        if (current >= total - delta - 1) {
+            start = Math.max(2, total - delta * 2 - 1);
+        }
+
+        // Add ellipsis before middle section if needed
+        if (start > 2) {
+            pages.push('...');
+        }
+
+        // Add middle section
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+
+        // Add ellipsis after middle section if needed
+        if (end < total - 1) {
+            pages.push('...');
+        }
+
+        // Always show last page
+        pages.push(total);
+    }
+
+    return pages;
 };
 
 // Escape HTML to prevent XSS
@@ -346,7 +482,8 @@ if (postForm) {
         postContent.value = '';
         charCount.textContent = '0 / 10000';
 
-        // Reload threads after 1 second
+        // Reset to first page and reload
+        currentPage = 1;
         setTimeout(() => {
             loadBoard();
             postMessage.textContent = '';
