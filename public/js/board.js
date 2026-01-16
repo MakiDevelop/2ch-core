@@ -14,7 +14,7 @@ const boardSlug = getBoardSlug();
 const API_BASE = '';
 
 // Sort state management
-let currentSort = localStorage.getItem('threadSort') || 'hot';
+let currentSort = localStorage.getItem('threadSort') || 'latest';
 
 const setSort = (sort) => {
     currentSort = sort;
@@ -25,11 +25,11 @@ const setSort = (sort) => {
 
 const updateSortButtons = () => {
     const hotBtn = document.getElementById('sort-hot');
+    const activeBtn = document.getElementById('sort-active');
     const latestBtn = document.getElementById('sort-latest');
-    if (hotBtn && latestBtn) {
-        hotBtn.classList.toggle('active', currentSort === 'hot');
-        latestBtn.classList.toggle('active', currentSort === 'latest');
-    }
+    if (hotBtn) hotBtn.classList.toggle('active', currentSort === 'hot');
+    if (activeBtn) activeBtn.classList.toggle('active', currentSort === 'active');
+    if (latestBtn) latestBtn.classList.toggle('active', currentSort === 'latest');
 };
 
 // Update meta tags for SEO

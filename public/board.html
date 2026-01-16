@@ -43,7 +43,7 @@
         }
         // Prefetch data with sort preference
         var slug = location.pathname.match(/\/boards\/([^\/]+)/);
-        var sort = localStorage.getItem('threadSort') || 'hot';
+        var sort = localStorage.getItem('threadSort') || 'latest';
         var jsonHeaders = {headers:{'Accept':'application/json'}};
         if(slug) {
             window.__prefetchSort = sort;
@@ -191,8 +191,9 @@ print("Hello, world")
                 <div class="threads-container">
                     <div class="threads-header">
                         <div class="sort-tabs">
-                            <button id="sort-hot" class="sort-btn active" onclick="setSort('hot')">🔥 熱門</button>
-                            <button id="sort-latest" class="sort-btn" onclick="setSort('latest')">🕐 最新</button>
+                            <button id="sort-latest" class="sort-btn" onclick="setSort('latest')">🕐 最新發表</button>
+                            <button id="sort-hot" class="sort-btn" onclick="setSort('hot')">🔥 熱門討論</button>
+                            <button id="sort-active" class="sort-btn" onclick="setSort('active')">💬 最新回覆</button>
                         </div>
                         <button id="refresh-btn" class="refresh-btn">重新整理</button>
                     </div>

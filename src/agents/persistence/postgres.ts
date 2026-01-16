@@ -386,12 +386,15 @@ export async function getBoardBySlug(slug: string): Promise<Board | null> {
 
 /**
  * 排序方式類型
+ * - latest: 最新發文（按建立時間）
+ * - hot: 熱門（按回覆數）
+ * - active: 最新回覆（按最後回覆時間）
  */
-export type ThreadSortType = 'latest' | 'hot';
+export type ThreadSortType = 'latest' | 'hot' | 'active';
 
 /**
  * 获取指定板块的主题列表
- * @param sort - 排序方式：'latest'（最新發文）或 'hot'（熱門，按回覆數）
+ * @param sort - 排序方式：'latest'（最新發文）、'hot'（熱門）、'active'（最新回覆）
  */
 export async function getBoardThreads(
   boardId: number,
@@ -400,9 +403,17 @@ export async function getBoardThreads(
   sort: ThreadSortType = 'latest',
 ): Promise<ThreadDetail[]> {
   // 根據排序方式決定 ORDER BY
-  const orderClause = sort === 'hot'
-    ? 'ORDER BY reply_count DESC, p.created_at DESC'
-    : 'ORDER BY p.created_at DESC';
+  let orderClause: string;
+  switch (sort) {
+    case 'hot':
+      orderClause = 'ORDER BY reply_count DESC, p.created_at DESC';
+      break;
+    case 'active':
+      orderClause = 'ORDER BY last_reply_at DESC NULLS LAST, p.created_at DESC';
+      break;
+    default: // 'latest'
+      orderClause = 'ORDER BY p.created_at DESC';
+  }
 
   // 使用子查詢取代 self-join，效能更好
   // 子查詢只對 LIMIT 後的結果計算，而非全部 threads
