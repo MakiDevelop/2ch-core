@@ -1,7 +1,7 @@
 // 2ch.tw Thread Detail Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260114b';
+const APP_VERSION = '20260116';
 
 // Copy share link to clipboard
 const copyShareLink = (postId, floor = null) => {
@@ -256,6 +256,10 @@ const extractYouTubeId = (url) => {
     // Format: https://www.youtube.com/embed/VIDEO_ID
     const embedMatch = trimmed.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
     if (embedMatch) return embedMatch[1];
+
+    // Format: https://youtube.com/shorts/VIDEO_ID (YouTube Shorts)
+    const shortsMatch = trimmed.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+    if (shortsMatch) return shortsMatch[1];
 
     return null;
 };
