@@ -79,8 +79,9 @@ export async function getBoardThreadsHandler(req: Request, res: Response) {
       : 0;
 
     // 解析排序參數
-    const sort: ThreadSortType =
-      sortParam === "hot" ? "hot" : "latest";
+    let sort: ThreadSortType = "latest";
+    if (sortParam === "hot") sort = "hot";
+    else if (sortParam === "active") sort = "active";
 
     // 获取主题列表
     const threads = await getBoardThreads(board.id, limit, offset, sort);
