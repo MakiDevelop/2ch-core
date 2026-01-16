@@ -1,69 +1,87 @@
 # 2ch.tw Development Log
 
-## 2026-01-16 工作記錄
+## 2026-01-17 工作記錄
 
 ### 已完成項目
 
-#### 1. 討論串排序功能
-- **狀態**: ✅ 已合併到 main，等待明天 5:00 AM 部署
+#### 1. 板塊專屬 Banner
+- **狀態**: ✅ 已部署到 Production
 - **內容**:
-  - 新增三種排序：最新發表（預設）｜熱門討論｜最新回覆
-  - 後端：`postgres.ts` 新增 `ThreadSortType`，支援 `latest`/`hot`/`active`
-  - API：`boards.ts` 接受 `?sort=` 參數
-  - 前端：`board.js` + `board.html` 排序按鈕 UI
-- **相關 commits**: `56e2e28`, `76b3949`
+  - 10 個板塊各有專屬插畫 Banner
+  - 原始圖片 2528×1696，優化為 1400px 寬度
+  - WebP 格式 (~150-250KB) + PNG fallback
+  - CSS `object-fit: cover` 響應式顯示（桌面 280px / 手機 180px）
+- **檔案**:
+  - `public/images/banners/optimized/` - 10 張 WebP + PNG
+  - `public/css/style.css` - Banner 樣式
+  - `public/js/board.js` - 動態載入邏輯
 
-#### 2. YouTube Shorts 支援修復
-- **狀態**: ✅ 已合併到 main
-- **內容**: `<yt>` 標籤現在支援 `youtube.com/shorts/VIDEO_ID` 格式
-- **檔案**: `public/js/thread.js` - `extractYouTubeId()` 函數
-- **相關 commit**: `26cb950`
+#### 2. 麵包屑導航
+- **狀態**: ✅ 已部署到 Production
+- **內容**: 板塊頁面新增「首頁 › 板塊名稱」導航
+- **檔案**: `public/board.html`, `public/css/style.css`, `public/js/board.js`
 
-#### 3. CI/CD 調整
-- **狀態**: ✅ 已生效
-- **內容**: 排程部署時間調整為凌晨 5:00 AM（台北時間）
-- **檔案**: `.github/workflows/deploy.yml`
-- **Rollback 機制**: Health check 失敗自動回滾到上一個 commit
+#### 3. Header 高度精簡
+- **狀態**: ✅ 已部署到 Production
+- **內容**:
+  - Top header: padding 30px → 15px, h1 2.5em → 1.8em
+  - Board header: padding 25px → 12px, h2 1.8em → 1.4em
+- **檔案**: `public/css/style.css`
+
+#### 4. JS 版本號快取解決方案
+- **狀態**: ✅ 已部署到 Production
+- **內容**: 所有 JS 引用加上 `?v=20260117` 避免瀏覽器快取問題
+- **檔案**: `public/*.html`
 
 ---
 
-### 待實作項目
+### 未來規劃
+
+#### 廣告位預留
+- **Header 右側**: 橫幅廣告 (728x90 或 responsive)
+- **左側 Sidebar 下方**: 方形廣告 (300x250)
 
 #### Posts Export API（優先度：中）
 - **需求來源**: 2026-01-16 使用者需求
 - **用途**: 推薦系統、知識圖譜、文本分析
 - **建議 endpoint**: `GET /api/export/posts`
-- **建議欄位**:
-  ```json
-  {
-    "id": "number",
-    "content": "string",
-    "title": "string | null",
-    "boardSlug": "string",
-    "parentId": "number | null",
-    "createdAt": "ISO8601",
-    "replyCount": "number"
-  }
-  ```
-- **注意事項**:
-  - 需要 cursor-based 分頁（資料量可能很大）
-  - 考慮是否需要 API key 保護
-  - 可能需要 rate limiting
 - **暫不實作原因**: 避免產生未保護的資料匯出口
 
 ---
 
-### 已部署但尚未到 Production 的功能
+## 2026-01-16 工作記錄
 
-以下功能將在 **2026-01-17 05:00 AM (台北時間)** 自動部署：
+### 已完成項目
 
-| 功能 | 類型 | 狀態 |
-|------|------|------|
-| 收藏功能（浮動按鈕 + 側邊欄） | Feature | 待部署 |
-| 新回覆追蹤（+N badge） | Feature | 待部署 |
-| 討論串三排序 | Feature | 待部署 |
-| YouTube Shorts 支援 | Bugfix | 待部署 |
-| escapeHtml 衝突修復 | Bugfix | 待部署 |
+#### 1. 討論串排序功能
+- **狀態**: ✅ 已部署到 Production
+- **內容**:
+  - 新增三種排序：最新發表（預設）｜熱門討論｜最新回覆
+  - 後端：`postgres.ts` 新增 `ThreadSortType`，支援 `latest`/`hot`/`active`
+  - API：`boards.ts` 接受 `?sort=` 參數
+  - 前端：`board.js` + `board.html` 排序按鈕 UI
+
+#### 2. 收藏功能
+- **狀態**: ✅ 已部署到 Production
+- **內容**:
+  - LocalStorage 儲存收藏
+  - 浮動按鈕 + 側邊欄 UI
+  - 新回覆追蹤（+N badge）
+- **檔案**: `public/js/bookmark.js`
+
+#### 3. YouTube Shorts 支援修復
+- **狀態**: ✅ 已部署到 Production
+- **內容**: `<yt>` 標籤現在支援 `youtube.com/shorts/VIDEO_ID` 格式
+- **檔案**: `public/js/thread.js` - `extractYouTubeId()` 函數
+
+#### 4. CI/CD 調整
+- **狀態**: ✅ 已生效
+- **內容**:
+  - 排程部署改為手動觸發（避免重複部署）
+  - `docker build --no-cache` 確保程式碼更新
+  - `rsync` 同步靜態檔案
+  - Health check 失敗自動回滾
+- **檔案**: `.github/workflows/deploy.yml`
 
 ---
 
