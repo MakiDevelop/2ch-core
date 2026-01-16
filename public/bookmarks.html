@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的收藏 - 2ch.tw</title>
+    <meta name="description" content="2ch.tw 我的收藏 - 收藏的討論串列表">
+    <meta name="robots" content="noindex">
+    <link rel="stylesheet" href="/css/style.css">
+    <script>
+    (function(){
+        var theme = localStorage.getItem('theme');
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/" style="text-decoration: none; color: inherit;">2ch.tw</a></h1>
+            <p class="subtitle">匿名討論版 - 對事不對人</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 左側板塊列表 -->
+            <aside class="boards-list">
+                <h2>討論版列表</h2>
+                <nav>
+                    <a href="/boards/chat/threads" class="board-link">
+                        <span class="board-name">綜合閒聊</span>
+                        <span class="board-desc">核心流量池，什麼都能丟</span>
+                    </a>
+                    <a href="/boards/news/threads" class="board-link">
+                        <span class="board-name">時事／政治</span>
+                        <span class="board-desc">鍵政、社會議題、新聞</span>
+                    </a>
+                    <a href="/boards/tech/threads" class="board-link">
+                        <span class="board-name">科技／網路／AI</span>
+                        <span class="board-desc">科技趨勢、AI、工具討論</span>
+                    </a>
+                    <a href="/boards/work/threads" class="board-link">
+                        <span class="board-name">職場／工作／社畜</span>
+                        <span class="board-desc">職涯、職場文化、薪資</span>
+                    </a>
+                    <a href="/boards/love/threads" class="board-link">
+                        <span class="board-name">感情／兩性／婚姻</span>
+                        <span class="board-desc">戀愛、婚姻、兩性議題</span>
+                    </a>
+                    <a href="/boards/money/threads" class="board-link">
+                        <span class="board-name">金錢／投資／理財</span>
+                        <span class="board-desc">投資、理財、省錢心得</span>
+                    </a>
+                    <a href="/boards/acg/threads" class="board-link">
+                        <span class="board-name">ACG／遊戲</span>
+                        <span class="board-desc">動漫、遊戲、宅文化</span>
+                    </a>
+                    <a href="/boards/life/threads" class="board-link">
+                        <span class="board-name">生活／心情／負能量回收站</span>
+                        <span class="board-desc">日常、抱怨、厭世</span>
+                    </a>
+                    <a href="/boards/gossip/threads" class="board-link">
+                        <span class="board-name">娛樂／名人／八卦</span>
+                        <span class="board-desc">明星、網紅、八卦</span>
+                    </a>
+                    <a href="/boards/meta/threads" class="board-link">
+                        <span class="board-name">站務／建議／黑特2ch</span>
+                        <span class="board-desc">反饋、建議、站務公告</span>
+                    </a>
+                    <a href="/search.html" class="board-link search-link">
+                        <span class="board-name">🔍 全站搜尋</span>
+                        <span class="board-desc">搜尋討論串標題與內文</span>
+                    </a>
+                    <a href="/bookmarks.html" class="board-link bookmark-link active">
+                        <span class="board-name">⭐ 我的收藏</span>
+                        <span class="board-desc">收藏的討論串（存在瀏覽器）</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- 右側收藏列表 -->
+            <div class="board-page">
+                <div class="board-header">
+                    <h2>⭐ 我的收藏</h2>
+                    <p class="board-description">
+                        收藏的討論串列表
+                        <span class="bookmark-notice">(?)
+                            <span class="bookmark-notice-tooltip">
+                                <strong>LocalStorage 方案</strong><br>
+                                • 收藏存在瀏覽器裡<br>
+                                • 缺點：換瀏覽器/清快取就沒了
+                            </span>
+                        </span>
+                    </p>
+                </div>
+
+                <div class="threads-container">
+                    <div class="threads-header">
+                        <h3>收藏列表</h3>
+                        <span id="bookmark-count" class="bookmark-count"></span>
+                    </div>
+                    <div id="bookmarks-list" class="threads-list">
+                        <p class="loading">載入中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2026 2ch.tw - <a href="/">返回首頁</a></p>
+        </footer>
+    </div>
+
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="切換深色模式">
+        <span class="icon-moon">🌙</span>
+        <span class="icon-sun">☀️</span>
+    </button>
+
+    <!-- Bookmark feature -->
+    <script src="/js/bookmark.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile: Collapsible boards list
+        var boardsList = document.querySelector('.boards-list');
+        var boardsHeader = boardsList ? boardsList.querySelector('h2') : null;
+        if (boardsHeader) {
+            boardsHeader.addEventListener('click', function() {
+                boardsList.classList.toggle('expanded');
+            });
+        }
+
+        // Theme toggle
+        var themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function() {
+                var currentTheme = document.documentElement.getAttribute('data-theme');
+                var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        }
+
+        // Render bookmarks list
+        renderBookmarks();
+    });
+
+    function renderBookmarks() {
+        const container = document.getElementById('bookmarks-list');
+        const countEl = document.getElementById('bookmark-count');
+        const bookmarks = Bookmarks.getAll();
+
+        countEl.textContent = `共 ${bookmarks.length} 個收藏`;
+
+        if (bookmarks.length === 0) {
+            container.innerHTML = `
+                <div class="empty">
+                    <p>還沒有收藏任何討論串</p>
+                    <p style="font-size: 0.9em; color: var(--text-muted); margin-top: 10px;">
+                        在討論串頁面點擊標題旁的 ☆ 即可收藏
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        const html = bookmarks.map(item => `
+            <div class="thread-item bookmark-item" data-id="${item.id}">
+                <div class="thread-content">
+                    <div class="thread-title">${escapeHtml(item.title)}</div>
+                </div>
+                <div class="thread-meta">
+                    <span class="thread-id">#${item.id}</span>
+                    ${item.board ? `<span class="thread-board">/${item.board}/</span>` : ''}
+                    <span class="thread-time">${formatDate(item.ts)}</span>
+                    <button class="remove-bookmark-btn" data-id="${item.id}" title="取消收藏">✕</button>
+                    <a href="/posts/${item.id}" class="thread-link">查看討論串 →</a>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+
+        // Add remove handlers
+        container.querySelectorAll('.remove-bookmark-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const id = parseInt(this.dataset.id);
+                if (confirm('確定要取消收藏嗎？')) {
+                    Bookmarks.remove(id);
+                    renderBookmarks();
+                }
+            });
+        });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function formatDate(ts) {
+        const date = new Date(ts);
+        const now = new Date();
+        const diff = now - date;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+        if (days > 0) return `${days}天前收藏`;
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        if (hours > 0) return `${hours}小時前收藏`;
+        const minutes = Math.floor(diff / (1000 * 60));
+        if (minutes > 0) return `${minutes}分鐘前收藏`;
+        return '剛剛收藏';
+    }
+    </script>
+</body>
+</html>

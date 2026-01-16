@@ -1379,3 +1379,204 @@ footer {
         font-size: 18px;
     }
 }
+
+/* ================================================
+   Bookmark Feature Styles
+   ================================================ */
+
+/* Bookmark button in thread title */
+.bookmark-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.bookmark-btn {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.bookmark-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.bookmark-btn.bookmarked {
+    color: #f5a623;
+}
+
+.bookmark-btn.bookmarked:hover {
+    color: #e09000;
+}
+
+/* Bookmark help tooltip */
+.bookmark-help {
+    position: relative;
+    font-size: 0.7em;
+    color: var(--text-muted);
+    cursor: help;
+    padding: 2px 4px;
+}
+
+.bookmark-help:hover {
+    color: var(--text-secondary);
+}
+
+.bookmark-tooltip {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-dark);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: nowrap;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bookmark-help:hover .bookmark-tooltip,
+.bookmark-help:focus .bookmark-tooltip {
+    display: block;
+}
+
+.bookmark-tooltip strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-heading);
+}
+
+/* Bookmark toast notification */
+.bookmark-toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text-heading);
+    color: var(--bg-secondary);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.95em;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 10000;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bookmark-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Bookmark link in sidebar */
+.board-link.bookmark-link {
+    margin-top: 5px;
+    border-left-color: #f5a623;
+}
+
+.board-link.bookmark-link:hover {
+    border-left-color: #e09000;
+}
+
+.board-link.bookmark-link.active {
+    background: var(--bg-hover);
+    border-left-color: #f5a623;
+}
+
+/* Bookmarks page */
+.bookmark-count {
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.bookmark-notice {
+    position: relative;
+    font-size: 0.85em;
+    color: var(--text-muted);
+    cursor: help;
+    margin-left: 5px;
+}
+
+.bookmark-notice-tooltip {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-dark);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: nowrap;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bookmark-notice:hover .bookmark-notice-tooltip {
+    display: block;
+}
+
+.bookmark-notice-tooltip strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-heading);
+}
+
+/* Remove bookmark button */
+.remove-bookmark-btn {
+    background: none;
+    border: 1px solid var(--border-primary);
+    color: var(--text-muted);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s;
+}
+
+.remove-bookmark-btn:hover {
+    background: var(--error-bg);
+    border-color: var(--error-text);
+    color: var(--error-text);
+}
+
+.thread-board {
+    background: var(--bg-hover);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .bookmark-container {
+        display: flex;
+        margin-left: 0;
+        margin-top: 8px;
+    }
+
+    .bookmark-tooltip {
+        left: 0;
+        transform: none;
+        white-space: normal;
+        width: 200px;
+    }
+}
