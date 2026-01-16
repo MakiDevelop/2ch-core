@@ -48,12 +48,16 @@ jobs:
             # Reset to new version
             git reset --hard origin/main
 
-            # Sync nginx config
+            # Sync static files to nginx mount
+            echo "Syncing static files..."
+            rsync -av --delete public/ /opt/2ch-core/public/
+
+            # Sync nginx config and reload
             docker compose -f docker-compose.deploy.yml exec -T nginx nginx -s reload || true
 
-            # Rebuild and restart API
+            # Rebuild and restart API (--no-cache ensures code changes are picked up)
             echo "Building new API image..."
-            docker compose -f docker-compose.deploy.yml build api
+            docker compose -f docker-compose.deploy.yml build --no-cache api
 
             echo "Deploying new API container..."
             docker compose -f docker-compose.deploy.yml up -d --force-recreate --no-deps api
@@ -69,7 +73,8 @@ jobs:
 
               # Rollback to previous version
               git reset --hard $PREVIOUS_COMMIT
-              docker compose -f docker-compose.deploy.yml build api
+              rsync -av --delete public/ /opt/2ch-core/public/
+              docker compose -f docker-compose.deploy.yml build --no-cache api
               docker compose -f docker-compose.deploy.yml up -d --force-recreate --no-deps api
 
               echo "✅ Rollback completed to commit $PREVIOUS_COMMIT"
