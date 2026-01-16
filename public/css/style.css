@@ -524,10 +524,14 @@ footer {
     .board-banner-container {
         max-height: 180px;
         border-radius: 8px;
+        max-width: 100%;
+        overflow: hidden;
     }
 
     .board-banner-container img {
         height: 180px;
+        max-width: 100%;
+        width: 100%;
     }
 }
 
