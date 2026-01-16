@@ -290,7 +290,7 @@ function renderBookmarkList() {
         return `
             <a href="/posts/${item.id}" class="bookmark-item" data-id="${item.id}">
                 <div class="bookmark-item-title">
-                    ${escapeHtml(item.title)}
+                    ${_bmEscapeHtml(item.title)}
                     ${newBadge}
                 </div>
                 <div class="bookmark-item-meta">
@@ -332,8 +332,8 @@ function updateBookmarkBadge() {
     }
 }
 
-// Escape HTML
-function escapeHtml(text) {
+// Escape HTML (private to avoid conflicts with other scripts)
+function _bmEscapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
