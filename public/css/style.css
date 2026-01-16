@@ -1013,6 +1013,26 @@ footer {
     border-color: var(--border-dark);
 }
 
+#reply-form button {
+    background: var(--accent-color);
+    color: var(--bg-secondary);
+    border: none;
+    padding: 10px 30px;
+    font-size: 1em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+#reply-form button:hover:not(:disabled) {
+    background: var(--text-heading);
+}
+
+#reply-form button:disabled {
+    background: var(--text-muted);
+    cursor: not-allowed;
+}
+
 /* Replies Container */
 .replies-container {
     background: var(--bg-secondary);
