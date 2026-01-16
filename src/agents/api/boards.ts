@@ -4,6 +4,7 @@ import {
   getBoardBySlug,
   getBoardThreads,
   createPost,
+  type ThreadSortType,
 } from "../persistence/postgres";
 import { checkCreatePost } from "../guard/postGuard";
 import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
@@ -44,6 +45,10 @@ export async function listBoardsHandler(req: Request, res: Response) {
 /**
  * GET /boards/:slug/threads
  * List threads in a specific board
+ * Query params:
+ *   - limit: number (1-50, default 30)
+ *   - offset: number (default 0)
+ *   - sort: 'latest' | 'hot' (default 'latest')
  */
 export async function getBoardThreadsHandler(req: Request, res: Response) {
   try {
@@ -59,6 +64,7 @@ export async function getBoardThreadsHandler(req: Request, res: Response) {
     // 解析分页参数
     const limitParam = req.query?.limit;
     const offsetParam = req.query?.offset;
+    const sortParam = req.query?.sort;
 
     const parsedLimit =
       typeof limitParam === "string" ? Number(limitParam) : NaN;
@@ -72,8 +78,12 @@ export async function getBoardThreadsHandler(req: Request, res: Response) {
       ? Math.max(parsedOffset, 0)
       : 0;
 
+    // 解析排序參數
+    const sort: ThreadSortType =
+      sortParam === "hot" ? "hot" : "latest";
+
     // 获取主题列表
-    const threads = await getBoardThreads(board.id, limit, offset);
+    const threads = await getBoardThreads(board.id, limit, offset, sort);
 
     res.json({
       board: {
@@ -88,6 +98,7 @@ export async function getBoardThreadsHandler(req: Request, res: Response) {
         offset,
         total: board.threadCount ?? 0,
       },
+      sort,
     });
   } catch (err) {
     console.error(err);

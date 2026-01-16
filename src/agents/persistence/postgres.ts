@@ -385,13 +385,25 @@ export async function getBoardBySlug(slug: string): Promise<Board | null> {
 }
 
 /**
+ * 排序方式類型
+ */
+export type ThreadSortType = 'latest' | 'hot';
+
+/**
  * 获取指定板块的主题列表
+ * @param sort - 排序方式：'latest'（最新發文）或 'hot'（熱門，按回覆數）
  */
 export async function getBoardThreads(
   boardId: number,
   limit: number,
   offset: number,
+  sort: ThreadSortType = 'latest',
 ): Promise<ThreadDetail[]> {
+  // 根據排序方式決定 ORDER BY
+  const orderClause = sort === 'hot'
+    ? 'ORDER BY reply_count DESC, p.created_at DESC'
+    : 'ORDER BY p.created_at DESC';
+
   // 使用子查詢取代 self-join，效能更好
   // 子查詢只對 LIMIT 後的結果計算，而非全部 threads
   const result = await pool.query(
@@ -402,7 +414,7 @@ export async function getBoardThreads(
       (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id) as last_reply_at
     FROM posts p
     WHERE p.board_id = $1 AND p.parent_id IS NULL
-    ORDER BY p.created_at DESC
+    ${orderClause}
     LIMIT $2 OFFSET $3`,
     [boardId, limit, offset],
   );
