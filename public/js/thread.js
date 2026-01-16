@@ -323,7 +323,16 @@ const loadThread = async () => {
         renderReplies(repliesData.replies);
 
         // Update meta tags for SEO (after we have reply count)
-        updateMetaTags(threadData, repliesData.replies?.length || 0);
+        const replyCount = repliesData.replies?.length || 0;
+        updateMetaTags(threadData, replyCount);
+
+        // Update bookmark's lastSeen (if bookmarked)
+        if (typeof Bookmarks !== 'undefined' && Bookmarks.has(threadData.id)) {
+            Bookmarks.updateLastSeen(threadData.id, replyCount);
+            if (typeof updateBookmarkBadge === 'function') {
+                updateBookmarkBadge();
+            }
+        }
 
         // Store board slug for back button
         if (threadData.board) {
@@ -346,7 +355,11 @@ const renderOP = (thread) => {
 
     const html = `
         <div class="op-post${isArchived ? ' archived' : ''}">
-            <h2 class="thread-title">${escapeHtml(thread.title || '無標題')}${archivedBadge}</h2>
+            <h2 class="thread-title">
+                <span class="title-text">${escapeHtml(thread.title || '無標題')}</span>
+                ${archivedBadge}
+                <span id="bookmark-btn-container"></span>
+            </h2>
             <div class="post-header">
                 <span class="post-author">${escapeHtml(thread.authorName || '名無しさん')}</span>
                 <span class="post-id share-id" data-post-id="${thread.id}" title="點擊複製分享連結">#${thread.id}</span>
@@ -372,6 +385,20 @@ const renderOP = (thread) => {
         shareId.addEventListener('click', () => {
             copyShareLink(shareId.dataset.postId);
         });
+    }
+
+    // Add bookmark button (if bookmark.js is loaded)
+    if (typeof createBookmarkButton === 'function') {
+        const bookmarkContainer = container.querySelector('#bookmark-btn-container');
+        if (bookmarkContainer) {
+            const bookmarkBtn = createBookmarkButton(
+                thread.id,
+                thread.title || '無標題',
+                thread.board?.slug || '',
+                thread.replyCount || 0
+            );
+            bookmarkContainer.appendChild(bookmarkBtn);
+        }
     }
 
     // Hide or show reply form based on archived status
