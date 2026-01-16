@@ -1,7 +1,7 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260116';
+const APP_VERSION = '20260117';
 
 // Get board slug from URL
 const getBoardSlug = () => {
@@ -30,6 +30,51 @@ const updateSortButtons = () => {
     if (hotBtn) hotBtn.classList.toggle('active', currentSort === 'hot');
     if (activeBtn) activeBtn.classList.toggle('active', currentSort === 'active');
     if (latestBtn) latestBtn.classList.toggle('active', currentSort === 'latest');
+};
+
+// Board banners mapping
+const BOARD_BANNERS = {
+    'chat': 'banner-chat',
+    'news': 'banner-news',
+    'tech': 'banner-tech',
+    'work': 'banner-work',
+    'love': 'banner-love',
+    'money': 'banner-money',
+    'acg': 'banner-acg',
+    'life': 'banner-life',
+    'gossip': 'banner-gossip',
+    'meta': 'banner-meta'
+};
+
+// Update breadcrumb and banner
+const updateBreadcrumbAndBanner = (board) => {
+    // Update breadcrumb
+    const breadcrumbBoard = document.getElementById('breadcrumb-board');
+    if (breadcrumbBoard) {
+        breadcrumbBoard.textContent = board.name || '討論版';
+    }
+
+    // Update banner
+    const bannerContainer = document.querySelector('.board-banner-container');
+    const bannerImg = document.getElementById('board-banner');
+    const bannerWebp = document.getElementById('banner-webp');
+
+    if (bannerContainer && bannerImg) {
+        const bannerName = BOARD_BANNERS[boardSlug];
+        if (bannerName) {
+            const webpPath = `/images/banners/optimized/${bannerName}.webp`;
+            const pngPath = `/images/banners/optimized/${bannerName}.png`;
+
+            if (bannerWebp) {
+                bannerWebp.srcset = webpPath;
+            }
+            bannerImg.src = pngPath;
+            bannerImg.alt = `${board.name} Banner`;
+            bannerContainer.style.display = 'block';
+        } else {
+            bannerContainer.style.display = 'none';
+        }
+    }
 };
 
 // Update meta tags for SEO
@@ -145,6 +190,9 @@ const loadBoard = async () => {
 
         // Update meta tags for SEO
         updateMetaTags(data.board);
+
+        // Update breadcrumb and banner
+        updateBreadcrumbAndBanner(data.board);
 
         // Update sort buttons
         updateSortButtons();
