@@ -567,7 +567,13 @@ footer {
 #post-form input[type="text"]:focus,
 #post-form textarea:focus {
     outline: none;
-    border-color: var(--border-dark);
+    border-color: var(--link-color);
+    box-shadow: 0 0 0 3px rgba(91, 142, 244, 0.15);
+}
+
+[data-theme="dark"] #post-form input[type="text"]:focus,
+[data-theme="dark"] #post-form textarea:focus {
+    box-shadow: 0 0 0 3px rgba(107, 158, 255, 0.2);
 }
 
 .form-actions {
@@ -582,23 +588,28 @@ footer {
 }
 
 #post-form button {
-    background: var(--accent-color);
-    color: var(--bg-secondary);
+    background: linear-gradient(135deg, #5b8ef4, #7c6cf4);
+    color: #fff;
     border: none;
     padding: 10px 30px;
     font-size: 1em;
     cursor: pointer;
     border-radius: 4px;
-    transition: background 0.2s;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(91, 142, 244, 0.3);
 }
 
 #post-form button:hover:not(:disabled) {
-    background: var(--text-heading);
+    background: linear-gradient(135deg, #4a7de3, #6b5be3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(91, 142, 244, 0.4);
 }
 
 #post-form button:disabled {
     background: var(--text-muted);
     cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
 
 .message {
@@ -663,12 +674,19 @@ footer {
 
 .sort-btn:hover {
     color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .sort-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .sort-btn.active {
     background: var(--bg-secondary);
-    color: var(--text-primary);
+    color: var(--link-color);
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-weight: 600;
+    border-bottom: 2px solid var(--link-color);
 }
 
 [data-theme="dark"] .sort-btn.active {
@@ -702,13 +720,19 @@ footer {
     border-left: 3px solid var(--text-muted);
     padding: 15px;
     background: var(--bg-tertiary);
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     overflow: hidden;
 }
 
 .thread-item:hover {
     background: var(--bg-hover);
-    border-left-color: var(--accent-color);
+    border-left-color: var(--link-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .thread-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .thread-content {
@@ -1975,4 +1999,47 @@ footer {
         max-width: 100%;
         right: -100%;
     }
+}
+
+/* ================================================
+   Custom Scrollbar
+   ================================================ */
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #5b8ef4, #7c6cf4);
+    border-radius: 5px;
+    border: 2px solid var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #4a7de3, #6b5be3);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #5b8ef4 var(--bg-tertiary);
+}
+
+/* Dark mode scrollbar adjustments */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    border-color: var(--bg-primary);
+}
+
+[data-theme="dark"] * {
+    scrollbar-color: #6b9eff var(--bg-primary);
 }
