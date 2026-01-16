@@ -32,7 +32,7 @@
     <link rel="dns-prefetch" href="https://2ch.tw">
     <!-- 預載入關鍵資源 -->
     <link rel="preload" href="/css/style.css" as="style">
-    <link rel="preload" href="/js/board.js?v=20260117" as="script">
+    <link rel="preload" href="/js/board.js?v=20260117b" as="script">
     <link rel="stylesheet" href="/css/style.css">
     <!-- Apply theme immediately to prevent flash -->
     <script>
@@ -246,6 +246,11 @@ print("Hello, world")
         }
     }
     </script>
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="back-to-top" aria-label="返回頂部">
+        <span>↑</span>
+    </button>
+
     <!-- Theme Toggle Button -->
     <button class="theme-toggle" id="theme-toggle" aria-label="切換深色模式">
         <span class="icon-moon">🌙</span>
@@ -253,9 +258,9 @@ print("Hello, world")
     </button>
 
     <!-- Bookmark feature -->
-    <script src="/js/bookmark.js?v=20260117"></script>
+    <script src="/js/bookmark.js?v=20260117b"></script>
     <!-- 延遲載入主要 JS -->
-    <script src="/js/board.js?v=20260117" defer></script>
+    <script src="/js/board.js?v=20260117b" defer></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Mobile: Collapsible boards list
@@ -288,6 +293,21 @@ print("Hello, world")
                 var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
                 document.documentElement.setAttribute('data-theme', newTheme);
                 localStorage.setItem('theme', newTheme);
+            });
+        }
+
+        // Back to top button
+        var backToTop = document.getElementById('back-to-top');
+        if (backToTop) {
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 300) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+            });
+            backToTop.addEventListener('click', function() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
         }
     });

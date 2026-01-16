@@ -1,7 +1,7 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260117';
+const APP_VERSION = '20260117b';
 
 // Get board slug from URL
 const getBoardSlug = () => {
@@ -210,7 +210,19 @@ const showLoading = () => {
     const container = document.getElementById('threads-list');
     if (!container) return;
 
-    container.innerHTML = '<p class="loading">載入中...</p>';
+    // Generate 5 skeleton items
+    const skeletonHTML = Array(5).fill(null).map(() => `
+        <div class="skeleton-item">
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton-meta">
+                <div class="skeleton skeleton-author"></div>
+                <div class="skeleton skeleton-time"></div>
+                <div class="skeleton skeleton-replies"></div>
+            </div>
+        </div>
+    `).join('');
+
+    container.innerHTML = skeletonHTML;
 };
 
 // Show error state
