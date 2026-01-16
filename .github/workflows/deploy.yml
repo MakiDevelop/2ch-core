@@ -2,12 +2,12 @@ name: Deploy to Production
 
 on:
   schedule:
-    # 每天凌晨 4:00 (台北時間) = UTC 20:00
-    - cron: '0 20 * * *'
+    # 每天凌晨 5:00 (台北時間) = UTC 21:00
+    - cron: '0 21 * * *'
   workflow_dispatch:  # 手動觸發（緊急部署時使用）
   # push:
   #   branches: [main]
-  # NOTE: Scheduled deployment at 4:00 AM daily with automatic rollback on failure
+  # NOTE: Scheduled deployment at 5:00 AM daily with automatic rollback on failure
 
 jobs:
   deploy:
