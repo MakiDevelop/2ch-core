@@ -1,7 +1,7 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260113';
+const APP_VERSION = '20260116';
 
 // Get board slug from URL
 const getBoardSlug = () => {
@@ -12,6 +12,25 @@ const getBoardSlug = () => {
 
 const boardSlug = getBoardSlug();
 const API_BASE = '';
+
+// Sort state management
+let currentSort = localStorage.getItem('threadSort') || 'hot';
+
+const setSort = (sort) => {
+    currentSort = sort;
+    localStorage.setItem('threadSort', sort);
+    updateSortButtons();
+    loadBoard();
+};
+
+const updateSortButtons = () => {
+    const hotBtn = document.getElementById('sort-hot');
+    const latestBtn = document.getElementById('sort-latest');
+    if (hotBtn && latestBtn) {
+        hotBtn.classList.toggle('active', currentSort === 'hot');
+        latestBtn.classList.toggle('active', currentSort === 'latest');
+    }
+};
 
 // Update meta tags for SEO
 const updateMetaTags = (board) => {
@@ -98,13 +117,15 @@ const loadBoard = async () => {
     showLoading();
 
     try {
-        // 使用預載入的資料（如果有的話）
+        // 使用預載入的資料（如果有的話，但排序需重新載入）
         let data;
-        if (window.__prefetchData) {
+        const prefetchSort = window.__prefetchSort;
+        if (window.__prefetchData && prefetchSort === currentSort) {
             data = await window.__prefetchData;
             window.__prefetchData = null; // 只用一次
         } else {
-            const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads?v=${APP_VERSION}`, {
+            window.__prefetchData = null; // 清除不匹配的預載入資料
+            const response = await fetch(`${API_BASE}/boards/${boardSlug}/threads?sort=${currentSort}&v=${APP_VERSION}`, {
                 headers: { 'Accept': 'application/json' }
             });
             if (!response.ok) {
@@ -124,6 +145,9 @@ const loadBoard = async () => {
 
         // Update meta tags for SEO
         updateMetaTags(data.board);
+
+        // Update sort buttons
+        updateSortButtons();
 
         // Render threads
         renderThreads(data.threads);

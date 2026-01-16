@@ -510,6 +510,41 @@ footer {
     font-size: 1.3em;
 }
 
+/* Sort Tabs */
+.sort-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-hover);
+    padding: 3px;
+    border-radius: 8px;
+}
+
+.sort-btn {
+    background: transparent;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.sort-btn:hover {
+    color: var(--text-primary);
+}
+
+.sort-btn.active {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+[data-theme="dark"] .sort-btn.active {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
 .refresh-btn {
     background: var(--bg-hover);
     border: 1px solid var(--border-primary);
