@@ -1,6 +1,54 @@
 # 2ch.tw Development Log
 
-## 2026-01-17 工作記錄
+## 2026-01-17 工作記錄（下午場）
+
+### 已完成項目
+
+#### 1. UI 微調部署
+- **狀態**: ✅ 已部署到 Production & Dev
+- **內容**: 從 HANDOFF-20260117.md 交接的 UI 優化項目
+  - 討論串卡片 hover 上移 + 陰影效果
+  - 排序按鈕 active 藍色文字 + 底線 + 加粗
+  - 發文表單 focus 藍色邊框 + 3px 發光
+  - 提交按鈕藍紫漸層 + hover 動畫
+  - 自定義滾動條（藍紫漸層）
+
+#### 2. 回覆表單樣式統一
+- **狀態**: ✅ 已部署到 Production & Dev
+- **內容**:
+  - 回覆按鈕改為藍紫漸層（與發文按鈕一致）
+  - 回覆表單 input/textarea focus 時顯示藍色發光框
+- **檔案**: `public/css/style.css`
+
+#### 3. Loading 骨架屏動畫
+- **狀態**: ✅ 已部署到 Production & Dev
+- **內容**:
+  - 將「載入中...」文字改為 shimmer 骨架動畫
+  - 5 個骨架項目，模擬討論串卡片結構
+- **檔案**: `public/css/style.css`, `public/js/board.js`
+
+#### 4. 返回頂部按鈕
+- **狀態**: ✅ 已部署到 Production & Dev
+- **內容**:
+  - 滾動超過 300px 時顯示
+  - 點擊後平滑捲動到頂部
+  - 支援深色/淺色主題
+- **檔案**: `public/css/style.css`, `public/board.html`, `public/thread.html`
+
+#### 5. 討論串列表分頁
+- **狀態**: ✅ 已部署到 Production & Dev
+- **內容**:
+  - 每頁 20 筆討論串
+  - 分頁按鈕藍紫漸層 active 狀態
+  - 省略號邏輯（`1 ... 4 5 6 ... 20`）
+  - 顯示「1-20 / 總數」資訊
+  - 換頁時平滑捲動到列表頂部
+  - 切換排序或發文後自動回到第 1 頁
+- **檔案**: `public/css/style.css`, `public/js/board.js`
+
+---
+
+## 2026-01-17 工作記錄（上午場）
 
 ### 已完成項目
 
