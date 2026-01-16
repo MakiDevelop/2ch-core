@@ -323,7 +323,16 @@ const loadThread = async () => {
         renderReplies(repliesData.replies);
 
         // Update meta tags for SEO (after we have reply count)
-        updateMetaTags(threadData, repliesData.replies?.length || 0);
+        const replyCount = repliesData.replies?.length || 0;
+        updateMetaTags(threadData, replyCount);
+
+        // Update bookmark's lastSeen (if bookmarked)
+        if (typeof Bookmarks !== 'undefined' && Bookmarks.has(threadData.id)) {
+            Bookmarks.updateLastSeen(threadData.id, replyCount);
+            if (typeof updateBookmarkBadge === 'function') {
+                updateBookmarkBadge();
+            }
+        }
 
         // Store board slug for back button
         if (threadData.board) {
@@ -385,7 +394,8 @@ const renderOP = (thread) => {
             const bookmarkBtn = createBookmarkButton(
                 thread.id,
                 thread.title || '無標題',
-                thread.board?.slug || ''
+                thread.board?.slug || '',
+                thread.replyCount || 0
             );
             bookmarkContainer.appendChild(bookmarkBtn);
         }
