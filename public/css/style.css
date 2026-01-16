@@ -81,6 +81,14 @@ header {
     padding: 15px 20px;
     margin-bottom: 15px;
     border-bottom: 2px solid var(--border-dark);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+}
+
+.header-text {
+    flex: 1;
 }
 
 header h1 {
@@ -95,6 +103,35 @@ header h1 {
     font-size: 0.95em;
 }
 
+/* Header 動態漸層 */
+.header-glow {
+    width: 600px;
+    height: 180px;
+    border-radius: 50%;
+    background: linear-gradient(135deg,
+        rgba(91, 142, 244, 0.3),
+        rgba(147, 112, 219, 0.3),
+        rgba(91, 142, 244, 0.3)
+    );
+    background-size: 200% 200%;
+    animation: glowFlow 8s ease-in-out infinite;
+    filter: blur(50px);
+}
+
+@keyframes glowFlow {
+    0%, 100% { background-position: 0% 50%; opacity: 0.6; }
+    50% { background-position: 100% 50%; opacity: 1; }
+}
+
+[data-theme="dark"] .header-glow {
+    background: linear-gradient(135deg,
+        rgba(107, 158, 255, 0.25),
+        rgba(167, 139, 250, 0.25),
+        rgba(107, 158, 255, 0.25)
+    );
+    background-size: 200% 200%;
+}
+
 @media (max-width: 768px) {
     header {
         padding: 15px 20px;
@@ -107,6 +144,10 @@ header h1 {
 
     .subtitle {
         font-size: 0.95em;
+    }
+
+    .header-glow {
+        display: none;
     }
 }
 
@@ -155,9 +196,29 @@ header h1 {
 
 /* Boards List (左側) */
 .boards-list {
-    background: var(--bg-secondary);
+    background:
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 10px,
+            rgba(0, 0, 0, 0.02) 10px,
+            rgba(0, 0, 0, 0.02) 11px
+        ),
+        var(--bg-secondary);
     padding: 20px;
     border: 1px solid var(--border-primary);
+}
+
+[data-theme="dark"] .boards-list {
+    background:
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.03) 10px,
+            rgba(255, 255, 255, 0.03) 11px
+        ),
+        var(--bg-secondary);
 }
 
 .boards-list h2 {
@@ -171,6 +232,11 @@ header h1 {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+/* Sidebar 下方空間 */
+.sidebar-fade {
+    display: none;
 }
 
 /* Mobile: Collapsible boards list */
@@ -216,6 +282,10 @@ header h1 {
 
     .boards-list.expanded nav {
         display: flex;
+    }
+
+    .sidebar-fade {
+        display: none;
     }
 }
 
