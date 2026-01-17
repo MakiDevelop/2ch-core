@@ -7,7 +7,7 @@ import {
   isThreadLocked,
   searchThreads,
 } from "../persistence/postgres";
-import { checkCreatePost } from "../guard/postGuard";
+import { checkCreatePost, validateReplyReferences } from "../guard/postGuard";
 import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
 import crypto from "crypto";
 
@@ -172,6 +172,13 @@ export async function createReplyHandler(req: Request, res: Response) {
 
     if (!guardResult.ok) {
       res.status(guardResult.status).json({ error: guardResult.error });
+      return;
+    }
+
+    // 驗證 >>N 引用（防止垃圾回覆）
+    const refResult = validateReplyReferences(guardResult.content, thread.replyCount);
+    if (!refResult.ok) {
+      res.status(400).json({ error: refResult.error });
       return;
     }
 

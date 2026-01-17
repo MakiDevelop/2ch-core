@@ -146,3 +146,57 @@ export function checkCreatePost(input: {
 
   return { ok: true, content: sanitized };
 }
+
+/**
+ * Validate >>N reply references in content
+ * Prevents spam with invalid or excessive references
+ */
+export type ReplyRefResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export function validateReplyReferences(
+  content: string,
+  maxFloor: number
+): ReplyRefResult {
+  // 1. Extract all >>N references
+  const refs = content.match(/>>(\d+)/g) || [];
+
+  // No references = no validation needed
+  if (refs.length === 0) {
+    return { ok: true };
+  }
+
+  // 2. Check reference count (max 10)
+  if (refs.length > 10) {
+    return { ok: false, error: "引用數量過多（最多 10 個）" };
+  }
+
+  // 3. Parse reference numbers
+  const numbers = refs.map(r => parseInt(r.slice(2), 10));
+
+  // 4. Check reference validity (must exist)
+  for (const num of numbers) {
+    if (num < 1 || num > maxFloor) {
+      return { ok: false, error: `引用的樓層 >>${num} 不存在` };
+    }
+  }
+
+  // 5. Check for duplicate references (same number max 2 times)
+  const countMap = new Map<number, number>();
+  for (const num of numbers) {
+    const count = (countMap.get(num) || 0) + 1;
+    if (count > 2) {
+      return { ok: false, error: "重複引用過多" };
+    }
+    countMap.set(num, count);
+  }
+
+  // 6. Check for substantial content (at least 2 chars after removing refs)
+  const withoutRefs = content.replace(/>>(\d+)/g, '').trim();
+  if (withoutRefs.length < 2) {
+    return { ok: false, error: "請輸入實質內容" };
+  }
+
+  return { ok: true };
+}
