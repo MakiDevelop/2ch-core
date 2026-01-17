@@ -501,6 +501,9 @@ const submitBtn = document.getElementById('submit-btn');
 const replyMessage = document.getElementById('reply-message');
 const charCount = document.querySelector('.char-count');
 
+// Prevent duplicate submissions
+let isSubmitting = false;
+
 // Update character count
 replyContent.addEventListener('input', () => {
     const length = replyContent.value.length;
@@ -510,6 +513,9 @@ replyContent.addEventListener('input', () => {
 replyForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    // Prevent duplicate submissions
+    if (isSubmitting) return;
+
     const authorName = replyAuthor.value.trim();
     const content = replyContent.value.trim();
 
@@ -518,7 +524,8 @@ replyForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    // Disable form
+    // Lock submission
+    isSubmitting = true;
     submitBtn.disabled = true;
     submitBtn.textContent = '發送中...';
     replyMessage.textContent = '';
@@ -556,6 +563,7 @@ replyForm.addEventListener('submit', async (e) => {
         console.error('Error posting reply:', error);
         showMessage(error.message || '回覆失敗，請稍後再試', 'error');
     } finally {
+        isSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.textContent = '回覆';
     }

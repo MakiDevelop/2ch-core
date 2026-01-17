@@ -1,7 +1,7 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260117c';
+const APP_VERSION = '20260117d';
 
 // Get board slug from URL
 const getBoardSlug = () => {
@@ -424,6 +424,9 @@ const submitBtn = document.getElementById('submit-btn');
 const postMessage = document.getElementById('post-message');
 const charCount = document.querySelector('.char-count');
 
+// Prevent duplicate submissions
+let isSubmitting = false;
+
 // Update character count
 if (postContent && charCount) {
     postContent.addEventListener('input', () => {
@@ -435,6 +438,9 @@ if (postContent && charCount) {
 if (postForm) {
     postForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // Prevent duplicate submissions
+    if (isSubmitting) return;
 
     const title = postTitle.value.trim();
     const authorName = postAuthor.value.trim();
@@ -450,7 +456,8 @@ if (postForm) {
         return;
     }
 
-    // Disable form
+    // Lock submission
+    isSubmitting = true;
     submitBtn.disabled = true;
     submitBtn.textContent = '發送中...';
     postMessage.textContent = '';
@@ -493,6 +500,7 @@ if (postForm) {
         console.error('Error posting:', error);
         showMessage(error.message || '發文失敗，請稍後再試', 'error');
     } finally {
+        isSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.textContent = '發表';
     }
