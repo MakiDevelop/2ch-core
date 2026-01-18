@@ -1,7 +1,7 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260117d';
+const APP_VERSION = '20260117e';
 
 // Get board slug from URL
 const getBoardSlug = () => {
@@ -17,7 +17,7 @@ const API_BASE = '';
 let currentSort = localStorage.getItem('threadSort') || 'latest';
 
 // Pagination state
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 25;
 let currentPage = 1;
 let totalItems = 0;
 
