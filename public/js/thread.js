@@ -1,7 +1,7 @@
 // 2ch.tw Thread Detail Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260116';
+const APP_VERSION = '20260120';
 
 // Copy share link to clipboard
 const copyShareLink = (postId, floor = null) => {

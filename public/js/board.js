@@ -1,7 +1,7 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260117f';
+const APP_VERSION = '20260120';
 
 // Get board slug from URL
 const getBoardSlug = () => {
