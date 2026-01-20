@@ -232,6 +232,9 @@ const parseContent = (text) => {
     // Convert newlines to <br>
     content = content.replace(/\n/g, '<br>');
 
+    // Convert literal \n strings to <br> (for seed data with escaped newlines)
+    content = content.replace(/\\n/g, '<br>');
+
     // Sanitize with DOMPurify to prevent XSS
     return DOMPurify.sanitize(content, {
         ALLOWED_TAGS: ['br', 'div', 'pre', 'code', 'iframe', 'img', 'a'],
