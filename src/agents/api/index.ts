@@ -6,6 +6,7 @@ export {
   getRepliesHandler,
   createReplyHandler,
   searchHandler,
+  editPostHandler,
 } from "./posts";
 
 export {

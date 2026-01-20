@@ -2249,3 +2249,250 @@ footer {
 [data-theme="dark"] * {
     scrollbar-color: #6b9eff var(--bg-primary);
 }
+
+/* ================================================
+   Edit Token Modal
+   ================================================ */
+.edit-token-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.edit-token-modal {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.edit-token-modal h3 {
+    margin: 0 0 16px 0;
+    color: var(--text-heading);
+    font-size: 1.2em;
+}
+
+.edit-token-display {
+    background: var(--bg-tertiary);
+    border: 2px dashed var(--border-primary);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.edit-token-code {
+    font-family: 'Courier New', monospace;
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--link-color);
+    letter-spacing: 2px;
+    user-select: all;
+}
+
+.edit-token-warning {
+    background: var(--warning-bg);
+    border-left: 3px solid var(--warning-border);
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 0.9em;
+    color: var(--text-primary);
+    border-radius: 0 4px 4px 0;
+}
+
+.edit-token-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.edit-token-actions button {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.copy-token-btn {
+    background: var(--link-color);
+    color: white;
+}
+
+.copy-token-btn:hover {
+    background: #4a7de3;
+}
+
+.close-modal-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary) !important;
+}
+
+.close-modal-btn:hover {
+    background: var(--bg-hover);
+}
+
+/* Edit Post Modal */
+.edit-post-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.edit-post-modal {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.2s ease;
+}
+
+.edit-post-modal h3 {
+    margin: 0 0 16px 0;
+    color: var(--text-heading);
+    font-size: 1.2em;
+}
+
+.edit-post-modal label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.edit-post-modal input,
+.edit-post-modal textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 1em;
+    margin-bottom: 16px;
+}
+
+.edit-post-modal textarea {
+    min-height: 150px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.edit-post-modal input:focus,
+.edit-post-modal textarea:focus {
+    outline: none;
+    border-color: var(--link-color);
+}
+
+.edit-post-error {
+    background: var(--error-bg);
+    color: var(--error-text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 0.9em;
+}
+
+.edit-post-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.edit-post-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.save-edit-btn {
+    background: var(--link-color);
+    color: white;
+}
+
+.save-edit-btn:hover:not(:disabled) {
+    background: #4a7de3;
+}
+
+.save-edit-btn:disabled {
+    background: var(--text-muted);
+    cursor: not-allowed;
+}
+
+.cancel-edit-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary) !important;
+}
+
+.cancel-edit-btn:hover {
+    background: var(--bg-hover);
+}
+
+/* Edit button on posts */
+.edit-post-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.edit-post-btn:hover {
+    color: var(--link-color);
+    background: var(--bg-hover);
+}
+
+/* Edited badge */
+.edited-badge {
+    color: var(--text-muted);
+    font-size: 0.8em;
+    font-style: italic;
+}

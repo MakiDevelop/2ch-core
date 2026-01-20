@@ -8,6 +8,7 @@ import {
   getRepliesHandler,
   createReplyHandler,
   searchHandler,
+  editPostHandler,
   listBoardsHandler,
   getBoardThreadsHandler,
   createBoardThreadHandler,
@@ -79,6 +80,7 @@ app.get("/posts", listPostsHandler);
 app.post("/posts", createPostHandler);
 app.get("/posts/:id/replies", getRepliesHandler); // 必须在 /posts/:id 之前
 app.post("/posts/:id/replies", createReplyHandler); // 回覆討論串
+app.patch("/posts/:id", editPostHandler); // 編輯貼文（需要編輯密碼）
 app.get("/posts/:id", getThreadHandler);
 
 // search API

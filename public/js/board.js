@@ -415,6 +415,64 @@ const escapeHtml = (text) => {
     return div.innerHTML;
 };
 
+// Show edit token modal after successful post
+const showEditTokenModal = (editToken, onClose) => {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'edit-token-modal-overlay';
+
+    overlay.innerHTML = `
+        <div class="edit-token-modal">
+            <h3>發文成功！請保存編輯密碼</h3>
+            <div class="edit-token-display">
+                <span class="edit-token-code">${escapeHtml(editToken)}</span>
+            </div>
+            <div class="edit-token-warning">
+                此密碼只會顯示一次，關閉後無法再次查看。<br>
+                在發文後 10 分鐘內可使用此密碼編輯內容。
+            </div>
+            <div class="edit-token-actions">
+                <button class="copy-token-btn">複製密碼</button>
+                <button class="close-modal-btn">我已保存，關閉</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Copy button handler
+    const copyBtn = overlay.querySelector('.copy-token-btn');
+    copyBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(editToken);
+            copyBtn.textContent = '已複製！';
+            setTimeout(() => {
+                copyBtn.textContent = '複製密碼';
+            }, 2000);
+        } catch (err) {
+            // Fallback for browsers that don't support clipboard API
+            prompt('請手動複製：', editToken);
+        }
+    });
+
+    // Close button handler
+    const closeBtn = overlay.querySelector('.close-modal-btn');
+    closeBtn.addEventListener('click', () => {
+        overlay.remove();
+        if (onClose) onClose();
+    });
+
+    // Click outside to close (optional, but ask for confirmation)
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            if (confirm('確定要關閉嗎？編輯密碼將無法再次查看。')) {
+                overlay.remove();
+                if (onClose) onClose();
+            }
+        }
+    });
+};
+
 // Handle post form submission
 const postForm = document.getElementById('post-form');
 const postTitle = document.getElementById('post-title');
@@ -482,19 +540,28 @@ if (postForm) {
 
         const data = await response.json();
 
-        // Success
-        showMessage('發文成功！', 'success');
+        // Success - clear form
         postTitle.value = '';
         postAuthor.value = '';
         postContent.value = '';
         charCount.textContent = '0 / 10000';
 
-        // Reset to first page and reload
-        currentPage = 1;
-        setTimeout(() => {
-            loadBoard();
-            postMessage.textContent = '';
-        }, 1000);
+        // Show edit token modal if available
+        if (data.editToken) {
+            showEditTokenModal(data.editToken, () => {
+                // After modal closes, reload the board
+                currentPage = 1;
+                loadBoard();
+            });
+        } else {
+            // Fallback if no edit token (shouldn't happen)
+            showMessage('發文成功！', 'success');
+            currentPage = 1;
+            setTimeout(() => {
+                loadBoard();
+                postMessage.textContent = '';
+            }, 1000);
+        }
 
     } catch (error) {
         console.error('Error posting:', error);

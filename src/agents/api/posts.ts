@@ -6,6 +6,7 @@ import {
   getReplies,
   isThreadLocked,
   searchThreads,
+  updatePost,
 } from "../persistence/postgres";
 import { checkCreatePost, validateReplyReferences } from "../guard/postGuard";
 import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
@@ -354,6 +355,67 @@ export async function searchHandler(req: Request, res: Response) {
         createdAt: thread.createdAt,
       })),
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * PATCH /posts/:id
+ * Edit a post using edit token (within 10 minutes of creation)
+ */
+export async function editPostHandler(req: Request, res: Response) {
+  try {
+    const postId = Number(req.params.id);
+    const { editToken, content } = req.body;
+
+    // Validate post ID
+    if (!Number.isInteger(postId) || postId <= 0) {
+      res.status(400).json({ error: "invalid post id" });
+      return;
+    }
+
+    // Validate edit token
+    if (!editToken || typeof editToken !== "string") {
+      res.status(400).json({ error: "請提供編輯密碼" });
+      return;
+    }
+
+    // Validate content
+    if (!content || typeof content !== "string") {
+      res.status(400).json({ error: "請提供內容" });
+      return;
+    }
+
+    const trimmedContent = content.trim();
+    if (trimmedContent.length === 0) {
+      res.status(400).json({ error: "內容不能為空" });
+      return;
+    }
+
+    if (trimmedContent.length > 10000) {
+      res.status(400).json({ error: "內容過長（最多 10000 字元）" });
+      return;
+    }
+
+    // Attempt to update the post
+    const result = await updatePost({
+      postId,
+      editToken: editToken.trim(),
+      content: trimmedContent,
+    });
+
+    if (!result.success) {
+      // Determine appropriate status code
+      const statusCode = result.error.includes("密碼") ? 403 :
+                         result.error.includes("時限") ? 403 : 400;
+      res.status(statusCode).json({ error: result.error });
+      return;
+    }
+
+    // Success
+    res.json(result.post);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "internal server error" });
