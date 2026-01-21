@@ -63,7 +63,13 @@ jobs:
 
             # Wait for container to be ready
             echo "Waiting for container to be ready..."
-            sleep 15
+            sleep 10
+
+            # IMPORTANT: Reload nginx to refresh DNS cache after API container restart
+            # This prevents nginx from routing to stale container IPs
+            echo "Reloading nginx to refresh DNS cache..."
+            docker compose -f docker-compose.deploy.yml exec -T nginx nginx -s reload || true
+            sleep 5
 
             # Health check
             echo "Running health check..."

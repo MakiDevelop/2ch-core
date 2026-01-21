@@ -1,7 +1,7 @@
 // 2ch.tw Thread Detail Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260116';
+const APP_VERSION = '20260120';
 
 // Copy share link to clipboard
 const copyShareLink = (postId, floor = null) => {
@@ -146,6 +146,159 @@ const escapeHtml = (text) => {
     return div.innerHTML;
 };
 
+// Show edit token modal after successful reply
+const showEditTokenModal = (editToken, onClose) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'edit-token-modal-overlay';
+
+    overlay.innerHTML = `
+        <div class="edit-token-modal">
+            <h3>回覆成功！請保存編輯密碼</h3>
+            <div class="edit-token-display">
+                <span class="edit-token-code">${escapeHtml(editToken)}</span>
+            </div>
+            <div class="edit-token-warning">
+                此密碼只會顯示一次，關閉後無法再次查看。<br>
+                在發文後 10 分鐘內可使用此密碼編輯內容。
+            </div>
+            <div class="edit-token-actions">
+                <button class="copy-token-btn">複製密碼</button>
+                <button class="close-modal-btn">我已保存，關閉</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const copyBtn = overlay.querySelector('.copy-token-btn');
+    copyBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(editToken);
+            copyBtn.textContent = '已複製！';
+            setTimeout(() => copyBtn.textContent = '複製密碼', 2000);
+        } catch (err) {
+            prompt('請手動複製：', editToken);
+        }
+    });
+
+    const closeBtn = overlay.querySelector('.close-modal-btn');
+    closeBtn.addEventListener('click', () => {
+        overlay.remove();
+        if (onClose) onClose();
+    });
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            if (confirm('確定要關閉嗎？編輯密碼將無法再次查看。')) {
+                overlay.remove();
+                if (onClose) onClose();
+            }
+        }
+    });
+};
+
+// Show edit post modal
+const showEditPostModal = (postId, currentContent, onSuccess) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'edit-post-modal-overlay';
+
+    overlay.innerHTML = `
+        <div class="edit-post-modal">
+            <h3>編輯貼文</h3>
+            <label for="edit-token-input">編輯密碼</label>
+            <input type="text" id="edit-token-input" placeholder="請輸入 8 位編輯密碼" maxlength="8">
+            <label for="edit-content-input">內容</label>
+            <textarea id="edit-content-input">${escapeHtml(currentContent)}</textarea>
+            <div class="edit-post-error" style="display: none;"></div>
+            <div class="edit-post-actions">
+                <button class="cancel-edit-btn">取消</button>
+                <button class="save-edit-btn">儲存</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const tokenInput = overlay.querySelector('#edit-token-input');
+    const contentInput = overlay.querySelector('#edit-content-input');
+    const errorDiv = overlay.querySelector('.edit-post-error');
+    const saveBtn = overlay.querySelector('.save-edit-btn');
+    const cancelBtn = overlay.querySelector('.cancel-edit-btn');
+
+    // Cancel button
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    // Click outside to close
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
+
+    // Save button
+    saveBtn.addEventListener('click', async () => {
+        const editToken = tokenInput.value.trim();
+        const content = contentInput.value.trim();
+
+        if (!editToken) {
+            errorDiv.textContent = '請輸入編輯密碼';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        if (!content) {
+            errorDiv.textContent = '內容不能為空';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = '儲存中...';
+        errorDiv.style.display = 'none';
+
+        try {
+            const response = await fetch(`${API_BASE}/posts/${postId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ editToken, content }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || '編輯失敗');
+            }
+
+            overlay.remove();
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            errorDiv.textContent = err.message;
+            errorDiv.style.display = 'block';
+            saveBtn.disabled = false;
+            saveBtn.textContent = '儲存';
+        }
+    });
+
+    // Focus on token input
+    tokenInput.focus();
+};
+
+// Format edited time
+const formatEditedTime = (editedAt) => {
+    if (!editedAt) return '';
+    const date = new Date(editedAt);
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    let timeStr;
+    if (days > 0) timeStr = `${days}天前`;
+    else if (hours > 0) timeStr = `${hours}小時前`;
+    else if (minutes > 0) timeStr = `${minutes}分鐘前`;
+    else timeStr = '剛剛';
+
+    return `<span class="edited-badge">(已編輯 · ${timeStr})</span>`;
+};
+
 // Parse custom syntax: <yt>, <iu>, <code>
 const parseContent = (text) => {
     if (!text) return '';
@@ -231,6 +384,9 @@ const parseContent = (text) => {
 
     // Convert newlines to <br>
     content = content.replace(/\n/g, '<br>');
+
+    // Convert literal \n strings to <br> (for seed data with escaped newlines)
+    content = content.replace(/\\n/g, '<br>');
 
     // Sanitize with DOMPurify to prevent XSS
     return DOMPurify.sanitize(content, {
@@ -430,12 +586,14 @@ const renderReplies = (replies) => {
     const reversedReplies = [...repliesWithIndex].reverse();
 
     const repliesHTML = reversedReplies.map(({ reply, floor }) => `
-        <div class="reply-item" id="reply-${floor}">
+        <div class="reply-item" id="reply-${floor}" data-content="${escapeHtml(reply.content)}">
             <div class="reply-header">
                 <span class="reply-number" data-floor="${floor}">${floor}樓</span>
                 <span class="reply-author">${escapeHtml(reply.authorName || '名無しさん')}</span>
                 <span class="reply-id share-id" data-post-id="${reply.id}" data-floor="${floor}" title="點擊複製分享連結">#${reply.id}</span>
                 <span class="reply-time">${formatDate(reply.createdAt)}</span>
+                ${formatEditedTime(reply.editedAt)}
+                <button class="edit-post-btn" data-post-id="${reply.id}" title="編輯此回覆">編輯</button>
             </div>
             <div class="reply-content">
                 ${parseContent(reply.content)}
@@ -491,6 +649,18 @@ const renderReplies = (replies) => {
             copyShareLink(el.dataset.postId, floor);
         });
     });
+
+    // Add click handlers for edit buttons
+    container.querySelectorAll('.edit-post-btn').forEach(el => {
+        el.addEventListener('click', () => {
+            const postId = el.dataset.postId;
+            const replyItem = el.closest('.reply-item');
+            const currentContent = replyItem.dataset.content || '';
+            showEditPostModal(postId, currentContent, () => {
+                loadThread(); // Reload to show updated content
+            });
+        });
+    });
 };
 
 // Handle reply form submission
@@ -501,6 +671,9 @@ const submitBtn = document.getElementById('submit-btn');
 const replyMessage = document.getElementById('reply-message');
 const charCount = document.querySelector('.char-count');
 
+// Prevent duplicate submissions
+let isSubmitting = false;
+
 // Update character count
 replyContent.addEventListener('input', () => {
     const length = replyContent.value.length;
@@ -510,6 +683,9 @@ replyContent.addEventListener('input', () => {
 replyForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    // Prevent duplicate submissions
+    if (isSubmitting) return;
+
     const authorName = replyAuthor.value.trim();
     const content = replyContent.value.trim();
 
@@ -518,7 +694,8 @@ replyForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    // Disable form
+    // Lock submission
+    isSubmitting = true;
     submitBtn.disabled = true;
     submitBtn.textContent = '發送中...';
     replyMessage.textContent = '';
@@ -540,22 +717,32 @@ replyForm.addEventListener('submit', async (e) => {
             throw new Error(error.error || '回覆失敗');
         }
 
-        // Success
-        showMessage('回覆成功！', 'success');
+        const data = await response.json();
+
+        // Clear form
         replyAuthor.value = '';
         replyContent.value = '';
         charCount.textContent = '0 / 10000';
 
-        // Reload thread after 1 second
-        setTimeout(() => {
-            loadThread();
-            replyMessage.textContent = '';
-        }, 1000);
+        // Show edit token modal if available
+        if (data.editToken) {
+            showEditTokenModal(data.editToken, () => {
+                loadThread();
+            });
+        } else {
+            // Fallback if no edit token
+            showMessage('回覆成功！', 'success');
+            setTimeout(() => {
+                loadThread();
+                replyMessage.textContent = '';
+            }, 1000);
+        }
 
     } catch (error) {
         console.error('Error posting reply:', error);
         showMessage(error.message || '回覆失敗，請稍後再試', 'error');
     } finally {
+        isSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.textContent = '回覆';
     }

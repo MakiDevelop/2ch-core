@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import crypto from "crypto";
 
 export type LinkPreview = {
   url: string;
@@ -19,6 +20,11 @@ export type Post = {
   title?: string | null;
   authorName: string;
   linkPreview?: LinkPreview;
+  editedAt?: Date | null;
+};
+
+export type CreatePostResult = Post & {
+  editToken?: string;  // Plain text token, only returned once at creation
 };
 
 export type CreatePostParams = {
@@ -65,7 +71,27 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-export async function createPost(params: CreatePostParams): Promise<Post> {
+/**
+ * Generate a random 8-character alphanumeric token for post editing
+ */
+function generateEditToken(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let token = '';
+  const randomBytes = crypto.randomBytes(8);
+  for (let i = 0; i < 8; i++) {
+    token += chars[randomBytes[i] % chars.length];
+  }
+  return token;
+}
+
+/**
+ * Hash an edit token using SHA-256
+ */
+function hashEditToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+export async function createPost(params: CreatePostParams): Promise<CreatePostResult> {
   const {
     content,
     status,
@@ -82,13 +108,17 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
   const finalAuthorName = authorName || "名無しさん";
   const finalStatus = status ?? 0;
 
+  // Generate edit token for this post
+  const editToken = generateEditToken();
+  const editTokenHash = hashEditToken(editToken);
+
   // SECURITY FIX: Removed real_ip from INSERT to prevent plaintext IP storage
   const result = await pool.query(
     `INSERT INTO posts (
       content, status, ip_hash, user_agent,
-      parent_id, board_id, title, author_name, link_preview
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    RETURNING id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview`,
+      parent_id, board_id, title, author_name, link_preview, edit_token_hash
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    RETURNING id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview, edited_at`,
     [
       content,
       finalStatus,
@@ -99,6 +129,7 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
       title ?? null,
       finalAuthorName,
       linkPreview ? JSON.stringify(linkPreview) : null,
+      editTokenHash,
     ],
   );
 
@@ -114,6 +145,114 @@ export async function createPost(params: CreatePostParams): Promise<Post> {
     title: row.title,
     authorName: row.author_name,
     linkPreview: row.link_preview,
+    editedAt: row.edited_at,
+    editToken, // Return plain token only once at creation
+  };
+}
+
+/**
+ * Edit time limit in minutes
+ */
+const EDIT_TIME_LIMIT_MINUTES = 10;
+
+/**
+ * Update a post's content (for editing feature)
+ * Returns the updated post, or null if validation fails
+ */
+export async function updatePost(params: {
+  postId: number;
+  editToken: string;
+  content: string;
+}): Promise<{ success: true; post: Post } | { success: false; error: string }> {
+  const { postId, editToken, content } = params;
+
+  // Hash the provided token
+  const editTokenHash = hashEditToken(editToken);
+
+  // Verify token and check time limit in a single query
+  const verifyResult = await pool.query(
+    `SELECT id, created_at, edit_token_hash
+     FROM posts
+     WHERE id = $1`,
+    [postId],
+  );
+
+  if (verifyResult.rows.length === 0) {
+    return { success: false, error: "貼文不存在" };
+  }
+
+  const post = verifyResult.rows[0];
+
+  // Check if token matches
+  if (post.edit_token_hash !== editTokenHash) {
+    return { success: false, error: "編輯密碼錯誤" };
+  }
+
+  // Check if within edit time limit
+  const createdAt = new Date(post.created_at);
+  const now = new Date();
+  const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+
+  if (diffMinutes > EDIT_TIME_LIMIT_MINUTES) {
+    return { success: false, error: `已超過編輯時限（${EDIT_TIME_LIMIT_MINUTES} 分鐘）` };
+  }
+
+  // Update the post
+  const updateResult = await pool.query(
+    `UPDATE posts
+     SET content = $1, edited_at = NOW()
+     WHERE id = $2
+     RETURNING id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview, edited_at`,
+    [content, postId],
+  );
+
+  const row = updateResult.rows[0];
+  return {
+    success: true,
+    post: {
+      id: row.id,
+      content: row.content,
+      status: row.status,
+      ipHash: row.ip_hash,
+      createdAt: row.created_at,
+      parentId: row.parent_id,
+      boardId: row.board_id,
+      title: row.title,
+      authorName: row.author_name,
+      linkPreview: row.link_preview,
+      editedAt: row.edited_at,
+    },
+  };
+}
+
+/**
+ * Get a post by ID (for edit validation)
+ */
+export async function getPostById(postId: number): Promise<Post | null> {
+  const result = await pool.query(
+    `SELECT id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview, edited_at
+     FROM posts
+     WHERE id = $1`,
+    [postId],
+  );
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    content: row.content,
+    status: row.status,
+    ipHash: row.ip_hash,
+    createdAt: row.created_at,
+    parentId: row.parent_id,
+    boardId: row.board_id,
+    title: row.title,
+    authorName: row.author_name,
+    linkPreview: row.link_preview,
+    editedAt: row.edited_at,
   };
 }
 
@@ -305,7 +444,7 @@ export async function getReplies(
   offset: number,
 ): Promise<Post[]> {
   const result = await pool.query(
-    `SELECT id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview
+    `SELECT id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview, edited_at
     FROM posts
     WHERE parent_id = $1
     ORDER BY id ASC
@@ -324,6 +463,7 @@ export async function getReplies(
     title: row.title,
     authorName: row.author_name,
     linkPreview: row.link_preview,
+    editedAt: row.edited_at,
   }));
 }
 

@@ -32,7 +32,7 @@
     <link rel="dns-prefetch" href="https://2ch.tw">
     <!-- 預載入關鍵資源 -->
     <link rel="preload" href="/css/style.css" as="style">
-    <link rel="preload" href="/js/board.js?v=20260117c" as="script">
+    <link rel="preload" href="/js/board.js?v=20260117d" as="script">
     <link rel="stylesheet" href="/css/style.css">
     <!-- Apply theme immediately to prevent flash -->
     <script>
@@ -164,6 +164,7 @@
                             <div class="syntax-help" tabindex="0">
                                 <span class="help-icon">?</span>
                                 <div class="help-tooltip">
+                                    <button type="button" class="help-tooltip-close">關閉</button>
                                     <div class="help-title">可使用語法</div>
                                     <div class="help-section">
                                         <div class="help-label">YouTube 影片</div>
@@ -258,9 +259,9 @@ print("Hello, world")
     </button>
 
     <!-- Bookmark feature -->
-    <script src="/js/bookmark.js?v=20260117c"></script>
+    <script src="/js/bookmark.js?v=20260117d"></script>
     <!-- 延遲載入主要 JS -->
-    <script src="/js/board.js?v=20260117c" defer></script>
+    <script src="/js/board.js?v=20260117d" defer></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Mobile: Collapsible boards list
@@ -275,8 +276,19 @@ print("Hello, world")
         // Mobile tap toggle for syntax help
         document.querySelectorAll('.syntax-help').forEach(function(el) {
             el.addEventListener('click', function(e) {
+                if (e.target.classList.contains('help-tooltip-close')) {
+                    el.classList.remove('active');
+                    return;
+                }
                 e.stopPropagation();
                 el.classList.toggle('active');
+            });
+        });
+        document.querySelectorAll('.help-tooltip-close').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var syntaxHelp = btn.closest('.syntax-help');
+                if (syntaxHelp) syntaxHelp.classList.remove('active');
             });
         });
         document.addEventListener('click', function() {
