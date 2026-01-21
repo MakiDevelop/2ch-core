@@ -22,6 +22,7 @@ import {
   sitemapHandler,
   robotsHandler,
   threadPageMiddleware,
+  boardPageMiddleware,
 } from "./agents/api";
 
 // SECURITY: Validate critical environment variables on startup
@@ -52,9 +53,10 @@ app.use(bodyParser.json());
 
 // NOTE: Clear-Site-Data header removed - was causing 10+ second delays on some networks
 
-// SSR: thread page with dynamic OG meta tags (for social sharing)
+// SSR: pages with dynamic OG meta tags (for social sharing)
 // Must be BEFORE API routes to intercept browser requests
 app.use(threadPageMiddleware);
+app.use(boardPageMiddleware);
 
 // health check
 app.get("/health", (_req, res) => {
