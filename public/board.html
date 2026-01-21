@@ -164,6 +164,7 @@
                             <div class="syntax-help" tabindex="0">
                                 <span class="help-icon">?</span>
                                 <div class="help-tooltip">
+                                    <button type="button" class="help-tooltip-close">關閉</button>
                                     <div class="help-title">可使用語法</div>
                                     <div class="help-section">
                                         <div class="help-label">YouTube 影片</div>
@@ -275,8 +276,19 @@ print("Hello, world")
         // Mobile tap toggle for syntax help
         document.querySelectorAll('.syntax-help').forEach(function(el) {
             el.addEventListener('click', function(e) {
+                if (e.target.classList.contains('help-tooltip-close')) {
+                    el.classList.remove('active');
+                    return;
+                }
                 e.stopPropagation();
                 el.classList.toggle('active');
+            });
+        });
+        document.querySelectorAll('.help-tooltip-close').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var syntaxHelp = btn.closest('.syntax-help');
+                if (syntaxHelp) syntaxHelp.classList.remove('active');
             });
         });
         document.addEventListener('click', function() {

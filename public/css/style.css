@@ -978,9 +978,57 @@ footer {
 /* Mobile: tap to toggle */
 @media (max-width: 768px) {
     .help-tooltip {
-        right: -8px;
-        width: calc(100vw - 60px);
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        right: auto;
+        width: calc(100vw - 40px);
         max-width: 360px;
+        max-height: 80vh;
+        overflow-y: auto;
+        z-index: 1000;
+    }
+
+    .syntax-help.active::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+}
+
+/* Close button for mobile tooltip */
+.help-tooltip-close {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .help-tooltip-close {
+        display: block;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border-primary);
+        border-radius: 4px;
+        padding: 4px 10px;
+        font-size: 0.85em;
+        cursor: pointer;
+        color: var(--text-secondary);
+    }
+
+    .help-tooltip-close:hover {
+        background: var(--border-secondary);
+        color: var(--text-primary);
+    }
+
+    .help-tooltip {
+        padding-top: 40px;
     }
 }
 
