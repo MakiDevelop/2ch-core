@@ -1,7 +1,7 @@
 // 2ch.tw Thread Detail Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260120';
+const APP_VERSION = '20260122';
 
 // Copy share link to clipboard
 const copyShareLink = (postId, floor = null) => {
@@ -281,8 +281,21 @@ const showEditPostModal = (postId, currentContent, onSuccess) => {
 };
 
 // Format edited time
-const formatEditedTime = (editedAt) => {
+// Only show if post is still within 10-minute edit window (based on createdAt)
+const formatEditedTime = (editedAt, createdAt) => {
     if (!editedAt) return '';
+
+    // If we have createdAt, check if post is older than 10 minutes
+    // If so, hide the edited badge since edit window has expired
+    if (createdAt) {
+        const created = new Date(createdAt);
+        const now = new Date();
+        const minutesSinceCreation = (now - created) / 60000;
+        if (minutesSinceCreation > 10) {
+            return ''; // Hide badge after edit window expires
+        }
+    }
+
     const date = new Date(editedAt);
     const now = new Date();
     const diff = now - date;
@@ -592,7 +605,7 @@ const renderReplies = (replies) => {
                 <span class="reply-author">${escapeHtml(reply.authorName || '名無しさん')}</span>
                 <span class="reply-id share-id" data-post-id="${reply.id}" data-floor="${floor}" title="點擊複製分享連結">#${reply.id}</span>
                 <span class="reply-time">${formatDate(reply.createdAt)}</span>
-                ${formatEditedTime(reply.editedAt)}
+                ${formatEditedTime(reply.editedAt, reply.createdAt)}
                 <button class="edit-post-btn" data-post-id="${reply.id}" title="編輯此回覆">編輯</button>
             </div>
             <div class="reply-content">
