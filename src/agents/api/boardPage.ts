@@ -1,26 +1,31 @@
 import type { Request, Response } from "express";
-import { getThreadById } from "../persistence/postgres";
+import { getBoardBySlug } from "../persistence/postgres";
 import fs from "fs";
 import path from "path";
 
-// 讀取 thread.html 模板（啟動時載入一次）
-const templatePath = path.join(process.cwd(), "public", "thread.html");
+// 讀取 board.html 模板（啟動時載入一次）
+const templatePath = path.join(process.cwd(), "public", "board.html");
 let templateHtml = "";
 
 try {
   templateHtml = fs.readFileSync(templatePath, "utf-8");
 } catch (err) {
-  console.error("[ThreadPage] Failed to load thread.html template:", err);
+  console.error("[BoardPage] Failed to load board.html template:", err);
 }
 
-// 截斷文字並加上省略號
-function truncate(text: string, maxLength: number): string {
-  if (!text) return "";
-  // 把 literal \n 轉成空格，再把多餘空白合併
-  const cleaned = text.replace(/\\n/g, " ").replace(/\s+/g, " ").trim();
-  if (cleaned.length <= maxLength) return cleaned;
-  return cleaned.substring(0, maxLength) + "...";
-}
+// 板塊描述對照表
+const boardDescriptions: Record<string, string> = {
+  chat: "綜合閒聊 - 什麼都能聊的核心流量池",
+  news: "時事與政治 - 鍵政、社會議題、新聞討論",
+  tech: "科技與網路 - 科技趨勢、AI、工具討論",
+  work: "職場與工作 - 職涯、職場文化、薪資討論",
+  love: "感情與兩性 - 戀愛、婚姻、兩性議題",
+  money: "投資與理財 - 投資、理財、省錢心得",
+  acg: "ACG 與遊戲 - 動漫、遊戲、宅文化",
+  life: "生活與心情 - 日常、抱怨、厭世發洩",
+  gossip: "娛樂與八卦 - 明星、網紅、八卦討論",
+  meta: "站務與建議 - 反饋、建議、站務公告",
+};
 
 // 跳脫 HTML 特殊字元
 function escapeHtml(text: string): string {
@@ -34,35 +39,32 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * GET /posts/:id (Accept: text/html)
- * Server-side render thread page with correct OG meta tags
+ * GET /boards/:slug/threads (Accept: text/html)
+ * Server-side render board page with correct OG meta tags
  */
-export async function threadPageHandler(req: Request, res: Response) {
+export async function boardPageHandler(req: Request, res: Response) {
   try {
-    const id = Number(req.params.id);
+    const slug = req.params.slug;
 
-    // 驗證 ID
-    if (!Number.isInteger(id) || id <= 0) {
-      // 讓 static middleware 處理（會顯示 404 或預設頁面）
+    // 驗證 slug
+    if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
       return null;
     }
 
-    const thread = await getThreadById(id);
+    const board = await getBoardBySlug(slug);
 
-    if (!thread) {
-      // 找不到，返回 null 讓下一個 middleware 處理
+    if (!board) {
       return null;
     }
 
     // 準備 OG 資料
     const siteUrl = process.env.SITE_URL || "https://2ch.tw";
     const ogImage = `${siteUrl}/og-image.jpg`;
-    const ogUrl = `${siteUrl}/posts/${id}`;
-    const ogTitle = escapeHtml(thread.title || `討論串 #${id}`) + " - 2ch.tw";
-    const ogDescription = escapeHtml(truncate(thread.content || "", 150));
-    const publishedTime = thread.createdAt
-      ? new Date(thread.createdAt).toISOString()
-      : "";
+    const ogUrl = `${siteUrl}/boards/${slug}/threads`;
+    const ogTitle = escapeHtml(board.name) + " - 2ch.tw";
+    const ogDescription = escapeHtml(
+      boardDescriptions[slug] || board.description || `${board.name} - 2ch.tw 匿名討論版`
+    );
 
     // 替換 meta tags
     let html = templateHtml
@@ -94,14 +96,6 @@ export async function threadPageHandler(req: Request, res: Response) {
         /<meta[^>]*id="og-url"[^>]*>/i,
         `<meta property="og:url" id="og-url" content="${ogUrl}">`
       )
-      .replace(
-        /<meta[^>]*id="og-image"[^>]*>/i,
-        `<meta property="og:image" id="og-image" content="${ogImage}">`
-      )
-      .replace(
-        /<meta[^>]*id="og-published"[^>]*>/i,
-        `<meta property="article:published_time" id="og-published" content="${publishedTime}">`
-      )
       // Twitter tags
       .replace(
         /<meta[^>]*id="twitter-title"[^>]*>/i,
@@ -110,31 +104,27 @@ export async function threadPageHandler(req: Request, res: Response) {
       .replace(
         /<meta[^>]*id="twitter-description"[^>]*>/i,
         `<meta name="twitter:description" id="twitter-description" content="${ogDescription}">`
-      )
-      .replace(
-        /<meta[^>]*id="twitter-image"[^>]*>/i,
-        `<meta name="twitter:image" id="twitter-image" content="${ogImage}">`
       );
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(html);
     return true;
   } catch (err) {
-    console.error("[ThreadPage] Error:", err);
+    console.error("[BoardPage] Error:", err);
     return null;
   }
 }
 
 /**
- * Middleware: 偵測瀏覽器請求 /posts/:id，返回帶正確 OG 的 HTML
+ * Middleware: 偵測瀏覽器請求 /boards/:slug/threads，返回帶正確 OG 的 HTML
  */
-export function threadPageMiddleware(
+export function boardPageMiddleware(
   req: Request,
   res: Response,
   next: () => void
 ) {
-  // 只處理 GET /posts/:id 路徑
-  const match = req.path.match(/^\/posts\/(\d+)$/);
+  // 只處理 GET /boards/:slug/threads 路徑
+  const match = req.path.match(/^\/boards\/([a-z0-9-]+)\/threads$/);
   if (!match || req.method !== "GET") {
     return next();
   }
@@ -152,9 +142,8 @@ export function threadPageMiddleware(
   }
 
   // 其他所有請求（瀏覽器、爬蟲）都返回 SSR HTML
-  // 爬蟲（Twitterbot, facebookexternalhit, LINE）通常發送 Accept: */* 或不發送
-  req.params = { id: match[1] };
-  threadPageHandler(req, res).then((handled) => {
+  req.params = { slug: match[1] };
+  boardPageHandler(req, res).then((handled) => {
     if (!handled) {
       next();
     }

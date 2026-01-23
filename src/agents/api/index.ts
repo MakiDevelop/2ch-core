@@ -31,3 +31,4 @@ export {
 } from "./sitemap";
 
 export { threadPageMiddleware } from "./threadPage";
+export { boardPageMiddleware } from "./boardPage";
