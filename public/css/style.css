@@ -2544,3 +2544,195 @@ footer {
     font-size: 0.8em;
     font-style: italic;
 }
+
+/* ================================================
+   Report Button & Modal
+   ================================================ */
+
+/* Report button on posts */
+.report-post-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.report-post-btn:hover {
+    color: #dc3545;
+    background: var(--bg-hover);
+}
+
+/* OP report button positioning */
+.op-report-btn {
+    margin-left: auto;
+}
+
+/* Report Modal Overlay */
+.report-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Report Modal */
+.report-modal {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.report-modal h3 {
+    margin: 0 0 8px 0;
+    color: var(--text-heading);
+}
+
+.report-hint {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin-bottom: 12px;
+}
+
+/* Report Categories */
+.report-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.report-categories label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border-primary);
+    transition: all 0.2s;
+}
+
+.report-categories label:hover {
+    background: var(--bg-hover);
+}
+
+.report-categories input[type="radio"] {
+    margin: 0;
+}
+
+.report-categories input[type="radio"]:checked + span,
+.report-categories label:has(input:checked) {
+    background: var(--warning-bg);
+    border-color: var(--warning-border);
+}
+
+/* Report text area */
+.report-modal textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border: 1px solid var(--border-primary);
+    border-radius: 4px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.9em;
+    resize: vertical;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+}
+
+.report-modal label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+/* Report error */
+.report-error {
+    color: var(--error-text);
+    background: var(--error-bg);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    font-size: 0.9em;
+}
+
+/* Report actions */
+.report-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.cancel-report-btn {
+    background: none;
+    border: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-report-btn:hover {
+    background: var(--bg-hover);
+}
+
+.submit-report-btn {
+    background: #dc3545;
+    border: none;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.submit-report-btn:hover {
+    background: #c82333;
+}
+
+.submit-report-btn:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+}
+
+/* Report success */
+.report-success {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.report-success h3 {
+    color: var(--success-text);
+    margin-bottom: 12px;
+}
+
+.report-success p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.close-report-btn {
+    background: var(--accent-color);
+    border: none;
+    color: #fff;
+    padding: 8px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+}

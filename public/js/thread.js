@@ -197,6 +197,97 @@ const showEditTokenModal = (editToken, onClose) => {
     });
 };
 
+// Show report modal
+const showReportModal = (postId) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'report-modal-overlay';
+
+    overlay.innerHTML = `
+        <div class="report-modal">
+            <h3>檢舉貼文</h3>
+            <p class="report-hint">請選擇檢舉原因：</p>
+            <div class="report-categories">
+                <label><input type="radio" name="report-category" value="hate_speech"> 仇恨言論 / 歧視</label>
+                <label><input type="radio" name="report-category" value="spam"> 廣告 / 詐騙</label>
+                <label><input type="radio" name="report-category" value="nsfw"> 不當內容</label>
+                <label><input type="radio" name="report-category" value="personal_attack"> 人身攻擊</label>
+                <label><input type="radio" name="report-category" value="illegal"> 違法內容</label>
+                <label><input type="radio" name="report-category" value="other"> 其他</label>
+            </div>
+            <label for="report-text">補充說明（選填）</label>
+            <textarea id="report-text" placeholder="請簡述檢舉原因..." maxlength="500"></textarea>
+            <div class="report-error" style="display: none;"></div>
+            <div class="report-actions">
+                <button class="cancel-report-btn">取消</button>
+                <button class="submit-report-btn">送出檢舉</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const errorDiv = overlay.querySelector('.report-error');
+    const submitBtn = overlay.querySelector('.submit-report-btn');
+    const cancelBtn = overlay.querySelector('.cancel-report-btn');
+
+    // Cancel button
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    // Click outside to close
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
+
+    // Submit button
+    submitBtn.addEventListener('click', async () => {
+        const categoryInput = overlay.querySelector('input[name="report-category"]:checked');
+        const textInput = overlay.querySelector('#report-text');
+
+        if (!categoryInput) {
+            errorDiv.textContent = '請選擇檢舉原因';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '送出中...';
+        errorDiv.style.display = 'none';
+
+        try {
+            const response = await fetch(`${API_BASE}/posts/${postId}/report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    category: categoryInput.value,
+                    text: textInput.value.trim() || undefined,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || '檢舉失敗');
+            }
+
+            // Success - show message and close
+            overlay.querySelector('.report-modal').innerHTML = `
+                <div class="report-success">
+                    <h3>✓ 檢舉已送出</h3>
+                    <p>感謝您的回報，我們會盡快處理。</p>
+                    <button class="close-report-btn">關閉</button>
+                </div>
+            `;
+            overlay.querySelector('.close-report-btn').addEventListener('click', () => overlay.remove());
+
+        } catch (err) {
+            errorDiv.textContent = err.message;
+            errorDiv.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = '送出檢舉';
+        }
+    });
+};
+
 // Show edit post modal
 const showEditPostModal = (postId, currentContent, onSuccess) => {
     const overlay = document.createElement('div');
@@ -546,6 +637,7 @@ const renderOP = (thread) => {
             <div class="post-meta">
                 <span class="reply-count">${thread.replyCount || 0} 則回覆</span>
                 ${isArchived ? '<span class="archived-notice">此討論串已達 999 樓上限，已封存無法回覆</span>' : ''}
+                <button class="report-post-btn op-report-btn" data-post-id="${thread.id}" title="檢舉此貼文">檢舉</button>
             </div>
         </div>
     `;
@@ -572,6 +664,14 @@ const renderOP = (thread) => {
             );
             bookmarkContainer.appendChild(bookmarkBtn);
         }
+    }
+
+    // Add click handler for OP report button
+    const opReportBtn = container.querySelector('.op-report-btn');
+    if (opReportBtn) {
+        opReportBtn.addEventListener('click', () => {
+            showReportModal(opReportBtn.dataset.postId);
+        });
     }
 
     // Hide or show reply form based on archived status
@@ -607,6 +707,7 @@ const renderReplies = (replies) => {
                 <span class="reply-time">${formatDate(reply.createdAt)}</span>
                 ${formatEditedTime(reply.editedAt, reply.createdAt)}
                 <button class="edit-post-btn" data-post-id="${reply.id}" title="編輯此回覆">編輯</button>
+                <button class="report-post-btn" data-post-id="${reply.id}" title="檢舉此回覆">檢舉</button>
             </div>
             <div class="reply-content">
                 ${parseContent(reply.content)}
@@ -672,6 +773,14 @@ const renderReplies = (replies) => {
             showEditPostModal(postId, currentContent, () => {
                 loadThread(); // Reload to show updated content
             });
+        });
+    });
+
+    // Add click handlers for report buttons
+    container.querySelectorAll('.report-post-btn').forEach(el => {
+        el.addEventListener('click', () => {
+            const postId = el.dataset.postId;
+            showReportModal(postId);
         });
     });
 };
