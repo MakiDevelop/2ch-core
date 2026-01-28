@@ -9,6 +9,14 @@ import {
   listThreadsByLastReply,
 } from "../persistence/postgres";
 import { checkAdminAuth, checkDeleteReason } from "../guard/adminGuard";
+import {
+  scanUnscannedPosts,
+  getModerationQueue,
+  getQueueCount,
+  approvePost,
+  rejectPost,
+  getModerationStats,
+} from "../service/moderationService";
 import crypto from "crypto";
 import os from "os";
 import Docker from "dockerode";
@@ -382,6 +390,187 @@ export async function listThreadsByLastReplyHandler(req: Request, res: Response)
     res.json({ items: threads });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+// ============================================
+// Content Moderation API
+// ============================================
+
+/**
+ * GET /admin/moderation/queue
+ * 取得審核佇列
+ */
+export async function moderationQueueHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const limitParam = req.query?.limit;
+    const offsetParam = req.query?.offset;
+
+    const limit = typeof limitParam === "string" ? Math.min(Math.max(Number(limitParam) || 20, 1), 100) : 20;
+    const offset = typeof offsetParam === "string" ? Math.max(Number(offsetParam) || 0, 0) : 0;
+
+    const [items, total] = await Promise.all([
+      getModerationQueue(limit, offset),
+      getQueueCount(),
+    ]);
+
+    res.json({
+      items,
+      pagination: {
+        limit,
+        offset,
+        total,
+        hasMore: offset + items.length < total,
+      },
+    });
+  } catch (err) {
+    console.error("[MODERATION] Queue error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * GET /admin/moderation/stats
+ * 取得審核統計
+ */
+export async function moderationStatsHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const stats = await getModerationStats();
+    res.json(stats);
+  } catch (err) {
+    console.error("[MODERATION] Stats error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * POST /admin/moderation/scan
+ * 觸發批次掃描
+ */
+export async function triggerScanHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const limitParam = req.body?.limit;
+    const limit = typeof limitParam === "number" ? Math.min(Math.max(limitParam, 1), 1000) : 100;
+
+    console.log(`[MODERATION] Scan triggered by admin, limit: ${limit}`);
+    const result = await scanUnscannedPosts(limit);
+
+    res.json({
+      success: true,
+      result,
+    });
+  } catch (err) {
+    console.error("[MODERATION] Scan error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * POST /admin/moderation/posts/:id/approve
+ * 審核通過
+ */
+export async function approvePostHandler(req: Request, res: Response) {
+  try {
+    const postId = Number(req.params.id);
+
+    if (!Number.isInteger(postId) || postId <= 0) {
+      res.status(400).json({ error: "invalid post id" });
+      return;
+    }
+
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const success = await approvePost(postId, ipHash);
+
+    if (!success) {
+      res.status(404).json({ error: "post not found or not in review queue" });
+      return;
+    }
+
+    res.json({
+      success: true,
+      postId,
+      action: "approved",
+    });
+  } catch (err) {
+    console.error("[MODERATION] Approve error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * POST /admin/moderation/posts/:id/reject
+ * 審核拒絕（刪除）
+ */
+export async function rejectPostHandler(req: Request, res: Response) {
+  try {
+    const postId = Number(req.params.id);
+    const { reason } = req.body;
+
+    if (!Number.isInteger(postId) || postId <= 0) {
+      res.status(400).json({ error: "invalid post id" });
+      return;
+    }
+
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const success = await rejectPost(postId, ipHash, reason);
+
+    if (!success) {
+      res.status(404).json({ error: "post not found or not in review queue" });
+      return;
+    }
+
+    res.json({
+      success: true,
+      postId,
+      action: "rejected",
+      reason: reason || null,
+    });
+  } catch (err) {
+    console.error("[MODERATION] Reject error:", err);
     res.status(500).json({ error: "internal server error" });
   }
 }

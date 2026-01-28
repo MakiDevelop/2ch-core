@@ -9,6 +9,7 @@ import {
   createReplyHandler,
   searchHandler,
   editPostHandler,
+  reportPostHandler,
   listBoardsHandler,
   getBoardThreadsHandler,
   createBoardThreadHandler,
@@ -19,6 +20,12 @@ import {
   systemStatusHandler,
   listThreadsHandler,
   listThreadsByLastReplyHandler,
+  // Content moderation
+  moderationQueueHandler,
+  moderationStatsHandler,
+  triggerScanHandler,
+  approvePostHandler,
+  rejectPostHandler,
   sitemapHandler,
   robotsHandler,
   threadPageMiddleware,
@@ -72,6 +79,13 @@ app.post("/admin/posts/:id/lock", lockPostHandler);
 app.post("/admin/posts/:id/unlock", unlockPostHandler);
 app.post("/admin/moderation/by-ip", moderateByIpHandler);
 
+// content moderation API (內容審核)
+app.get("/admin/moderation/queue", moderationQueueHandler);
+app.get("/admin/moderation/stats", moderationStatsHandler);
+app.post("/admin/moderation/scan", triggerScanHandler);
+app.post("/admin/moderation/posts/:id/approve", approvePostHandler);
+app.post("/admin/moderation/posts/:id/reject", rejectPostHandler);
+
 // boards API
 app.get("/boards", listBoardsHandler);
 app.get("/boards/:slug/threads", getBoardThreadsHandler);
@@ -82,6 +96,7 @@ app.get("/posts", listPostsHandler);
 app.post("/posts", createPostHandler);
 app.get("/posts/:id/replies", getRepliesHandler); // 必须在 /posts/:id 之前
 app.post("/posts/:id/replies", createReplyHandler); // 回覆討論串
+app.post("/posts/:id/report", reportPostHandler); // 用戶舉報
 app.patch("/posts/:id", editPostHandler); // 編輯貼文（需要編輯密碼）
 app.get("/posts/:id", getThreadHandler);
 

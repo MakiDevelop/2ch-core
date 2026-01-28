@@ -7,6 +7,7 @@ export {
   createReplyHandler,
   searchHandler,
   editPostHandler,
+  reportPostHandler,
 } from "./posts";
 
 export {
@@ -23,6 +24,12 @@ export {
   systemStatusHandler,
   listThreadsHandler,
   listThreadsByLastReplyHandler,
+  // Content moderation
+  moderationQueueHandler,
+  moderationStatsHandler,
+  triggerScanHandler,
+  approvePostHandler,
+  rejectPostHandler,
 } from "./admin";
 
 export {

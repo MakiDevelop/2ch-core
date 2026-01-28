@@ -10,6 +10,7 @@ import {
 } from "../persistence/postgres";
 import { checkCreatePost, validateReplyReferences } from "../guard/postGuard";
 import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
+import { createReport } from "../service/moderationService";
 import crypto from "crypto";
 
 function getRealIp(req: Request): string {
@@ -418,6 +419,111 @@ export async function editPostHandler(req: Request, res: Response) {
     res.json(result.post);
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+// Report rate limiting
+const REPORT_COOLDOWN_MS = 12_000; // 12 seconds between reports (5 per minute max)
+const reportRateLimitMap = new Map<string, number>();
+
+// Clean up old entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, time] of reportRateLimitMap) {
+    if (now - time > REPORT_COOLDOWN_MS * 2) {
+      reportRateLimitMap.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
+
+// Valid report categories
+const VALID_REPORT_CATEGORIES = [
+  "hate_speech",
+  "spam",
+  "nsfw",
+  "personal_attack",
+  "illegal",
+  "other",
+];
+
+/**
+ * POST /posts/:id/report
+ * User report for inappropriate content
+ */
+export async function reportPostHandler(req: Request, res: Response) {
+  try {
+    const postId = Number(req.params.id);
+
+    // Validate post ID
+    if (!Number.isInteger(postId) || postId <= 0) {
+      res.status(400).json({ error: "invalid post id" });
+      return;
+    }
+
+    const { category, text } = req.body;
+
+    // Validate category
+    if (!category || typeof category !== "string") {
+      res.status(400).json({ error: "請選擇舉報類別" });
+      return;
+    }
+
+    if (!VALID_REPORT_CATEGORIES.includes(category)) {
+      res.status(400).json({
+        error: "無效的舉報類別",
+        validCategories: VALID_REPORT_CATEGORIES,
+      });
+      return;
+    }
+
+    // Validate optional text
+    if (text !== undefined && typeof text !== "string") {
+      res.status(400).json({ error: "補充說明必須是文字" });
+      return;
+    }
+
+    const trimmedText = text?.trim();
+    if (trimmedText && trimmedText.length > 500) {
+      res.status(400).json({ error: "補充說明不能超過 500 字" });
+      return;
+    }
+
+    // Rate limiting
+    const realIp = getRealIp(req);
+    const ipHash = getIpHash(realIp);
+    const now = Date.now();
+    const lastReport = reportRateLimitMap.get(ipHash);
+
+    if (lastReport && now - lastReport < REPORT_COOLDOWN_MS) {
+      const waitSeconds = Math.ceil((REPORT_COOLDOWN_MS - (now - lastReport)) / 1000);
+      res.status(429).json({
+        error: `舉報冷卻中，請等待 ${waitSeconds} 秒`,
+        retryAfter: waitSeconds,
+      });
+      return;
+    }
+
+    // Create report
+    const result = await createReport(postId, ipHash, category, trimmedText);
+
+    if (!result.success) {
+      // Determine status code based on error
+      const statusCode = result.error?.includes("不存在") ? 404 :
+                         result.error?.includes("已經舉報") ? 409 : 400;
+      res.status(statusCode).json({ error: result.error });
+      return;
+    }
+
+    // Update rate limit on success
+    reportRateLimitMap.set(ipHash, now);
+
+    res.json({
+      success: true,
+      message: "舉報已送出，感謝您的回報",
+    });
+  } catch (err) {
+    console.error("[REPORT] Error:", err);
     res.status(500).json({ error: "internal server error" });
   }
 }
