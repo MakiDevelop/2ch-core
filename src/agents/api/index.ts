@@ -30,6 +30,15 @@ export {
   triggerScanHandler,
   approvePostHandler,
   rejectPostHandler,
+  // Badword management
+  listBadwordCategoriesHandler,
+  updateBadwordCategoryHandler,
+  listBadwordsHandler,
+  createBadwordHandler,
+  updateBadwordHandler,
+  deleteBadwordHandler,
+  badwordStatsHandler,
+  importBadwordsHandler,
 } from "./admin";
 
 export {

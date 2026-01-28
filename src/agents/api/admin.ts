@@ -17,6 +17,16 @@ import {
   rejectPost,
   getModerationStats,
 } from "../service/moderationService";
+import {
+  listCategories,
+  listBadwords,
+  createBadword,
+  updateBadword,
+  deleteBadword,
+  updateCategoryWeight,
+  getBadwordStats,
+  importFromConfig,
+} from "../service/badwordService";
 import crypto from "crypto";
 import os from "os";
 import Docker from "dockerode";
@@ -571,6 +581,301 @@ export async function rejectPostHandler(req: Request, res: Response) {
     });
   } catch (err) {
     console.error("[MODERATION] Reject error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+// ============================================
+// Badword Management API
+// ============================================
+
+/**
+ * GET /admin/badwords/categories
+ * 列出所有關鍵字類別
+ */
+export async function listBadwordCategoriesHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const categories = await listCategories();
+    res.json({ items: categories });
+  } catch (err) {
+    console.error("[BADWORD] List categories error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * PUT /admin/badwords/categories/:id
+ * 更新類別權重
+ */
+export async function updateBadwordCategoryHandler(req: Request, res: Response) {
+  try {
+    const categoryId = Number(req.params.id);
+    const { weight } = req.body;
+
+    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+      res.status(400).json({ error: "invalid category id" });
+      return;
+    }
+
+    if (typeof weight !== "number" || weight < 0 || weight > 1) {
+      res.status(400).json({ error: "weight must be a number between 0 and 1" });
+      return;
+    }
+
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const success = await updateCategoryWeight(categoryId, weight);
+
+    if (!success) {
+      res.status(404).json({ error: "category not found" });
+      return;
+    }
+
+    res.json({ success: true, categoryId, weight });
+  } catch (err) {
+    console.error("[BADWORD] Update category error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * GET /admin/badwords
+ * 列出關鍵字（支援分頁和篩選）
+ */
+export async function listBadwordsHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const categoryId = req.query.categoryId
+      ? Number(req.query.categoryId)
+      : undefined;
+    const search = req.query.search as string | undefined;
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+    const result = await listBadwords({ categoryId, search, limit, offset });
+
+    res.json({
+      items: result.items,
+      pagination: {
+        limit,
+        offset,
+        total: result.total,
+        hasMore: offset + result.items.length < result.total,
+      },
+    });
+  } catch (err) {
+    console.error("[BADWORD] List error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * POST /admin/badwords
+ * 新增關鍵字
+ */
+export async function createBadwordHandler(req: Request, res: Response) {
+  try {
+    const { categoryId, term, pattern } = req.body;
+
+    if (!categoryId || !Number.isInteger(categoryId)) {
+      res.status(400).json({ error: "categoryId is required" });
+      return;
+    }
+
+    if (!term && !pattern) {
+      res.status(400).json({ error: "term or pattern is required" });
+      return;
+    }
+
+    if (term && pattern) {
+      res.status(400).json({ error: "cannot have both term and pattern" });
+      return;
+    }
+
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const result = await createBadword({
+      categoryId,
+      term: term?.trim(),
+      pattern: pattern?.trim(),
+      createdBy: ipHash,
+    });
+
+    if (!result.success) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
+    res.status(201).json({ success: true, badword: result.badword });
+  } catch (err) {
+    console.error("[BADWORD] Create error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * PUT /admin/badwords/:id
+ * 更新關鍵字
+ */
+export async function updateBadwordHandler(req: Request, res: Response) {
+  try {
+    const badwordId = Number(req.params.id);
+
+    if (!Number.isInteger(badwordId) || badwordId <= 0) {
+      res.status(400).json({ error: "invalid badword id" });
+      return;
+    }
+
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const { term, pattern, isActive } = req.body;
+
+    const result = await updateBadword(badwordId, {
+      term: term?.trim(),
+      pattern: pattern?.trim(),
+      isActive,
+    });
+
+    if (!result.success) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
+    res.json({ success: true, badwordId });
+  } catch (err) {
+    console.error("[BADWORD] Update error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * DELETE /admin/badwords/:id
+ * 刪除關鍵字
+ */
+export async function deleteBadwordHandler(req: Request, res: Response) {
+  try {
+    const badwordId = Number(req.params.id);
+
+    if (!Number.isInteger(badwordId) || badwordId <= 0) {
+      res.status(400).json({ error: "invalid badword id" });
+      return;
+    }
+
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const success = await deleteBadword(badwordId);
+
+    if (!success) {
+      res.status(404).json({ error: "badword not found" });
+      return;
+    }
+
+    res.json({ success: true, badwordId });
+  } catch (err) {
+    console.error("[BADWORD] Delete error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * GET /admin/badwords/stats
+ * 取得關鍵字統計
+ */
+export async function badwordStatsHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const stats = await getBadwordStats();
+    res.json(stats);
+  } catch (err) {
+    console.error("[BADWORD] Stats error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * POST /admin/badwords/import
+ * 從 JSON 匯入關鍵字
+ */
+export async function importBadwordsHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+
+    const adminCheck = checkAdminAuth(authHeader, ipHash);
+    if (!adminCheck.ok) {
+      res.status(adminCheck.status).json({ error: adminCheck.error });
+      return;
+    }
+
+    const config = req.body;
+
+    if (!config || typeof config !== "object") {
+      res.status(400).json({ error: "invalid config format" });
+      return;
+    }
+
+    const result = await importFromConfig(config, ipHash);
+
+    res.json({
+      success: true,
+      imported: result.imported,
+      errors: result.errors,
+    });
+  } catch (err) {
+    console.error("[BADWORD] Import error:", err);
     res.status(500).json({ error: "internal server error" });
   }
 }

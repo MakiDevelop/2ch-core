@@ -6,6 +6,8 @@
 import { Pool } from "pg";
 import { checkContentForBoard } from "../guard/contentGuard";
 
+// Note: checkContentForBoard is now async, using database-driven badwords
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
@@ -77,7 +79,7 @@ export async function scanUnscannedPosts(limit: number = 100): Promise<ScanResul
 
     for (const post of postsResult.rows) {
       try {
-        const checkResult = checkContentForBoard(post.content, post.board_slug);
+        const checkResult = await checkContentForBoard(post.content, post.board_slug);
         result.scanned++;
 
         if (checkResult.flagged) {

@@ -26,6 +26,15 @@ import {
   triggerScanHandler,
   approvePostHandler,
   rejectPostHandler,
+  // Badword management
+  listBadwordCategoriesHandler,
+  updateBadwordCategoryHandler,
+  listBadwordsHandler,
+  createBadwordHandler,
+  updateBadwordHandler,
+  deleteBadwordHandler,
+  badwordStatsHandler,
+  importBadwordsHandler,
   sitemapHandler,
   robotsHandler,
   threadPageMiddleware,
@@ -85,6 +94,16 @@ app.get("/admin/moderation/stats", moderationStatsHandler);
 app.post("/admin/moderation/scan", triggerScanHandler);
 app.post("/admin/moderation/posts/:id/approve", approvePostHandler);
 app.post("/admin/moderation/posts/:id/reject", rejectPostHandler);
+
+// badword management API (關鍵字管理)
+app.get("/admin/badwords/categories", listBadwordCategoriesHandler);
+app.put("/admin/badwords/categories/:id", updateBadwordCategoryHandler);
+app.get("/admin/badwords/stats", badwordStatsHandler);
+app.get("/admin/badwords", listBadwordsHandler);
+app.post("/admin/badwords", createBadwordHandler);
+app.post("/admin/badwords/import", importBadwordsHandler);
+app.put("/admin/badwords/:id", updateBadwordHandler);
+app.delete("/admin/badwords/:id", deleteBadwordHandler);
 
 // boards API
 app.get("/boards", listBoardsHandler);
