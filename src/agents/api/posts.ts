@@ -11,23 +11,7 @@ import {
 import { checkCreatePost, validateReplyReferences } from "../guard/postGuard";
 import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
 import { createReport } from "../service/moderationService";
-import crypto from "crypto";
-
-function getRealIp(req: Request): string {
-  // With trust proxy enabled, req.ip is set from X-Forwarded-For by Express
-  // Nginx overwrites X-Forwarded-For with $remote_addr to prevent spoofing
-  return req.ip ?? "unknown";
-}
-
-function getIpHash(ip: string): string {
-  // Use HMAC with server secret to prevent rainbow table attacks on IPv4
-  const secret = process.env.APP_SECRET || "default-secret-change-me";
-  return crypto.createHmac("sha256", secret).update(ip).digest("hex");
-}
-
-function getUserAgent(req: Request): string {
-  return req.headers["user-agent"] || "unknown";
-}
+import { getRealIp, getUserAgent, hashIp } from "../../utils/ip";
 
 /**
  * POST /posts
@@ -38,7 +22,7 @@ export async function createPostHandler(req: Request, res: Response) {
     const { content, parentId } = req.body;
 
     const realIp = getRealIp(req);
-    const ipHash = getIpHash(realIp);
+    const ipHash = hashIp(realIp);
     const userAgent = getUserAgent(req);
 
     // parentId：僅允許一層 reply（必須指向 thread）
@@ -163,7 +147,7 @@ export async function createReplyHandler(req: Request, res: Response) {
     }
 
     const realIp = getRealIp(req);
-    const ipHash = getIpHash(realIp);
+    const ipHash = hashIp(realIp);
     const userAgent = getUserAgent(req);
 
     // Guard 检查
@@ -316,7 +300,7 @@ export async function searchHandler(req: Request, res: Response) {
 
     // Rate limiting by IP
     const realIp = getRealIp(req);
-    const ipHash = getIpHash(realIp);
+    const ipHash = hashIp(realIp);
     const now = Date.now();
     const lastSearch = searchRateLimitMap.get(ipHash);
 
@@ -491,7 +475,7 @@ export async function reportPostHandler(req: Request, res: Response) {
 
     // Rate limiting
     const realIp = getRealIp(req);
-    const ipHash = getIpHash(realIp);
+    const ipHash = hashIp(realIp);
     const now = Date.now();
     const lastReport = reportRateLimitMap.get(ipHash);
 

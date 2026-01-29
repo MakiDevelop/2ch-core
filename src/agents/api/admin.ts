@@ -27,25 +27,12 @@ import {
   getBadwordStats,
   importFromConfig,
 } from "../service/badwordService";
-import crypto from "crypto";
+import { getIpHash } from "../../utils/ip";
 import os from "os";
 import Docker from "dockerode";
 
 // SECURITY FIX: Replaced shell exec with Docker SDK to prevent command injection
 const docker = new Docker();
-
-function getRealIp(req: Request): string {
-  // With trust proxy enabled, req.ip is set from X-Forwarded-For by Express
-  // Nginx overwrites X-Forwarded-For with $remote_addr to prevent spoofing
-  return req.ip ?? "unknown";
-}
-
-function getIpHash(req: Request): string {
-  const ip = getRealIp(req);
-  // Use HMAC with server secret to prevent rainbow table attacks on IPv4
-  const secret = process.env.APP_SECRET || "default-secret-change-me";
-  return crypto.createHmac("sha256", secret).update(ip).digest("hex");
-}
 
 /**
  * POST /admin/posts/:id/delete

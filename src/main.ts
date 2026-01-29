@@ -1,4 +1,7 @@
 import "dotenv/config";
+// Environment validation - must be imported early to fail fast on invalid config
+import env from "./config/env";
+
 import express from "express";
 import bodyParser from "body-parser";
 import {
@@ -40,25 +43,12 @@ import {
   threadPageMiddleware,
   boardPageMiddleware,
 } from "./agents/api";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
-// SECURITY: Validate critical environment variables on startup
-if (process.env.NODE_ENV === 'production') {
-  if (!process.env.ADMIN_API_TOKEN || process.env.ADMIN_API_TOKEN.trim() === '') {
-    console.error('❌ FATAL: ADMIN_API_TOKEN must be set in production environment');
-    console.error('   Generate a secure token with: openssl rand -hex 32');
-    process.exit(1);
-  }
-
-  // APP_SECRET is used for IP hashing - must be secure in production
-  const appSecret = process.env.APP_SECRET;
-  if (!appSecret || appSecret === 'default-secret-change-me' || appSecret.length < 32) {
-    console.error('❌ FATAL: APP_SECRET must be set to a secure value (min 32 chars) in production');
-    console.error('   Generate a secure secret with: openssl rand -hex 32');
-    process.exit(1);
-  }
-
-  console.log('✅ Security: ADMIN_API_TOKEN is configured');
-  console.log('✅ Security: APP_SECRET is configured');
+console.log(`✅ Environment: ${env.NODE_ENV}`);
+if (env.NODE_ENV === "production") {
+  console.log("✅ Security: ADMIN_API_TOKEN is configured");
+  console.log("✅ Security: APP_SECRET is configured");
 }
 
 const app = express();
@@ -139,8 +129,13 @@ app.get("/robots.txt", robotsHandler);
 // middleware: serve static files from public folder (AFTER API routes)
 app.use(express.static('public'));
 
+// 404 handler - must be after all routes
+app.use(notFoundHandler);
+
+// Global error handler - must be LAST middleware
+app.use(errorHandler);
+
 // start server
-const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
-app.listen(PORT, () => {
-  console.log(`API server listening on http://localhost:${PORT}`);
+app.listen(env.PORT, () => {
+  console.log(`API server listening on http://localhost:${env.PORT}`);
 });
