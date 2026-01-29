@@ -25,6 +25,28 @@
 
 ---
 
+## 2026-01-30: Dev 環境資料庫 Schema 不同步問題
+
+**背景：** dev.2ch.tw 無法發文，錯誤訊息 `column "edit_token_hash" of relation "posts" does not exist`
+
+**原因：**
+- Production (`2ch`) 資料庫已執行過 `008_add_edit_token.sql` migration
+- Dev (`2ch_dev`) 資料庫未執行此 migration，導致缺少 `edit_token_hash` 和 `edited_at` 欄位
+
+**修復：** 手動在 `2ch_dev` 執行：
+```sql
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS edit_token_hash VARCHAR(64);
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS edited_at TIMESTAMP;
+CREATE INDEX IF NOT EXISTS idx_posts_edit_token ON posts(id, edit_token_hash) WHERE edit_token_hash IS NOT NULL;
+```
+
+**教訓/TODO：**
+- ⚠️ **部署 production 時務必確認 migration 已執行**
+- 目前無自動 migration 機制，需手動執行 SQL
+- 未來考慮實作 migration runner 或在 CI/CD 中整合
+
+---
+
 ## 2026-01-22: 編輯標記 10 分鐘後自動隱藏
 
 **背景：** 用戶回報「編輯只給 10 分鐘，顯示『2小時前 編輯』沒有意義」
