@@ -4,6 +4,7 @@
  */
 
 import { Pool } from "pg";
+import safeRegex from "safe-regex";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -141,8 +142,13 @@ export async function listBadwords(options?: {
   }
 
   if (search) {
+    // Escape LIKE special characters to prevent unintended pattern matching
+    const escapedSearch = search
+      .replace(/\\/g, "\\\\")
+      .replace(/%/g, "\\%")
+      .replace(/_/g, "\\_");
     whereClause += ` AND (b.term ILIKE $${paramIndex} OR b.pattern ILIKE $${paramIndex})`;
-    params.push(`%${search}%`);
+    params.push(`%${escapedSearch}%`);
     paramIndex++;
   }
 
@@ -194,12 +200,16 @@ export async function createBadword(
     return { success: false, error: "必須提供 term 或 pattern（二擇一）" };
   }
 
-  // Validate pattern is valid regex
+  // Validate pattern is valid regex and safe from ReDoS
   if (pattern) {
     try {
       new RegExp(pattern);
     } catch (e) {
       return { success: false, error: "無效的正則表達式" };
+    }
+    // Check for ReDoS vulnerability
+    if (!safeRegex(pattern)) {
+      return { success: false, error: "正則表達式可能導致效能問題（ReDoS 風險），請簡化 pattern" };
     }
   }
 
@@ -255,6 +265,10 @@ export async function updateBadword(
         new RegExp(updates.pattern);
       } catch (e) {
         return { success: false, error: "無效的正則表達式" };
+      }
+      // Check for ReDoS vulnerability
+      if (!safeRegex(updates.pattern)) {
+        return { success: false, error: "正則表達式可能導致效能問題（ReDoS 風險），請簡化 pattern" };
       }
     }
     setClauses.push(`pattern = $${paramIndex++}`);

@@ -48,7 +48,17 @@ if (process.env.NODE_ENV === 'production') {
     console.error('   Generate a secure token with: openssl rand -hex 32');
     process.exit(1);
   }
+
+  // APP_SECRET is used for IP hashing - must be secure in production
+  const appSecret = process.env.APP_SECRET;
+  if (!appSecret || appSecret === 'default-secret-change-me' || appSecret.length < 32) {
+    console.error('❌ FATAL: APP_SECRET must be set to a secure value (min 32 chars) in production');
+    console.error('   Generate a secure secret with: openssl rand -hex 32');
+    process.exit(1);
+  }
+
   console.log('✅ Security: ADMIN_API_TOKEN is configured');
+  console.log('✅ Security: APP_SECRET is configured');
 }
 
 const app = express();
