@@ -58,8 +58,15 @@ export async function threadPageHandler(req: Request, res: Response) {
     const siteUrl = process.env.SITE_URL || "https://2ch.tw";
     const ogImage = `${siteUrl}/og-image.jpg`;
     const ogUrl = `${siteUrl}/posts/${id}`;
-    const ogTitle = escapeHtml(thread.title || `討論串 #${id}`) + " - 2ch.tw";
-    const ogDescription = escapeHtml(truncate(thread.content || "", 150));
+
+    // 檢查是否已刪除 (status = 2)
+    const isDeleted = thread.status === 2;
+    const ogTitle = isDeleted
+      ? "此討論串已被刪除 - 2ch.tw"
+      : escapeHtml(thread.title || `討論串 #${id}`) + " - 2ch.tw";
+    const ogDescription = isDeleted
+      ? `刪除原因：${escapeHtml(thread.deletedReason || "違反版規")}`
+      : escapeHtml(truncate(thread.content || "", 150));
     const publishedTime = thread.createdAt
       ? new Date(thread.createdAt).toISOString()
       : "";
@@ -115,6 +122,14 @@ export async function threadPageHandler(req: Request, res: Response) {
         /<meta[^>]*id="twitter-image"[^>]*>/i,
         `<meta name="twitter:image" id="twitter-image" content="${ogImage}">`
       );
+
+    // 已刪除的帖子加上 noindex
+    if (isDeleted) {
+      html = html.replace(
+        /<meta name="robots"[^>]*>/i,
+        `<meta name="robots" content="noindex, nofollow">`
+      );
+    }
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(html);
