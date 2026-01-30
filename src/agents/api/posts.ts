@@ -12,6 +12,7 @@ import { checkCreatePost, validateReplyReferences } from "../guard/postGuard";
 import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
 import { createReport } from "../service/moderationService";
 import { getRealIp, getUserAgent, hashIp } from "../../utils/ip";
+import { checkRateLimit } from "../../utils/rateLimiter";
 
 /**
  * POST /posts
@@ -84,6 +85,22 @@ export async function listPostsHandler(req: Request, res: Response) {
 }
 
 /**
+ * 處理已刪除帖子的內容（隱藏敏感資訊但保留結構）
+ */
+function sanitizeDeletedPost<T extends { status: number; content: string; ipHash: string; deletedReason?: string | null }>(
+  post: T
+): T {
+  if (post.status === 2) {
+    return {
+      ...post,
+      content: "", // 清空內容
+      ipHash: "", // 清空 IP hash
+    };
+  }
+  return post;
+}
+
+/**
  * GET /posts/:id
  * Get thread detail with reply statistics
  */
@@ -104,7 +121,8 @@ export async function getThreadHandler(req: Request, res: Response) {
       return;
     }
 
-    res.json(thread);
+    // 如果討論串已刪除，清除敏感內容但保留結構
+    res.json(sanitizeDeletedPost(thread));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "internal server error" });
@@ -130,6 +148,12 @@ export async function createReplyHandler(req: Request, res: Response) {
     const thread = await getThreadById(threadId);
     if (!thread) {
       res.status(404).json({ error: "thread not found" });
+      return;
+    }
+
+    // 檢查討論串是否已被刪除
+    if (thread.status === 2) {
+      res.status(403).json({ error: "此討論串已被刪除，無法回覆" });
       return;
     }
 
@@ -239,14 +263,23 @@ export async function getRepliesHandler(req: Request, res: Response) {
     // 获取回复列表
     const replies = await getReplies(threadId, limit, offset);
 
+    // 清理已刪除回覆的敏感內容
+    const sanitizedReplies = replies.map(reply => sanitizeDeletedPost(reply));
+
+    // 清理已刪除討論串的敏感內容
+    const sanitizedThread = sanitizeDeletedPost(thread);
+
     res.json({
       thread: {
-        id: thread.id,
-        content: thread.content,
-        createdAt: thread.createdAt,
-        replyCount: thread.replyCount,
+        id: sanitizedThread.id,
+        content: sanitizedThread.content,
+        status: sanitizedThread.status,
+        createdAt: sanitizedThread.createdAt,
+        replyCount: sanitizedThread.replyCount,
+        deletedReason: sanitizedThread.deletedReason,
+        deletedAt: sanitizedThread.deletedAt,
       },
-      replies,
+      replies: sanitizedReplies,
       pagination: {
         limit,
         offset,
@@ -259,19 +292,8 @@ export async function getRepliesHandler(req: Request, res: Response) {
   }
 }
 
-// Rate limit map for search: ipHash -> lastSearchTime
-const searchRateLimitMap = new Map<string, number>();
+// Rate limit constants
 const SEARCH_COOLDOWN_MS = 10 * 1000; // 10 seconds
-
-// Clean up old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, time] of searchRateLimitMap) {
-    if (now - time > SEARCH_COOLDOWN_MS * 2) {
-      searchRateLimitMap.delete(ip);
-    }
-  }
-}, 5 * 60 * 1000);
 
 /**
  * GET /search?q=keyword
@@ -298,23 +320,17 @@ export async function searchHandler(req: Request, res: Response) {
       return;
     }
 
-    // Rate limiting by IP
-    const realIp = getRealIp(req);
-    const ipHash = hashIp(realIp);
-    const now = Date.now();
-    const lastSearch = searchRateLimitMap.get(ipHash);
+    // Rate limiting by IP (Redis-backed with in-memory fallback)
+    const ipHash = hashIp(getRealIp(req));
+    const rateLimit = await checkRateLimit("search", ipHash, SEARCH_COOLDOWN_MS);
 
-    if (lastSearch && now - lastSearch < SEARCH_COOLDOWN_MS) {
-      const waitSeconds = Math.ceil((SEARCH_COOLDOWN_MS - (now - lastSearch)) / 1000);
+    if (!rateLimit.allowed) {
       res.status(429).json({
-        error: `搜尋冷卻中，請等待 ${waitSeconds} 秒`,
-        retryAfter: waitSeconds,
+        error: `搜尋冷卻中，請等待 ${rateLimit.retryAfter} 秒`,
+        retryAfter: rateLimit.retryAfter,
       });
       return;
     }
-
-    // Update rate limit
-    searchRateLimitMap.set(ipHash, now);
 
     // Parse limit
     const limitParam = req.query?.limit;
@@ -409,17 +425,6 @@ export async function editPostHandler(req: Request, res: Response) {
 
 // Report rate limiting
 const REPORT_COOLDOWN_MS = 12_000; // 12 seconds between reports (5 per minute max)
-const reportRateLimitMap = new Map<string, number>();
-
-// Clean up old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, time] of reportRateLimitMap) {
-    if (now - time > REPORT_COOLDOWN_MS * 2) {
-      reportRateLimitMap.delete(ip);
-    }
-  }
-}, 5 * 60 * 1000);
 
 // Valid report categories
 const VALID_REPORT_CATEGORIES = [
@@ -473,17 +478,14 @@ export async function reportPostHandler(req: Request, res: Response) {
       return;
     }
 
-    // Rate limiting
-    const realIp = getRealIp(req);
-    const ipHash = hashIp(realIp);
-    const now = Date.now();
-    const lastReport = reportRateLimitMap.get(ipHash);
+    // Rate limiting (Redis-backed with in-memory fallback)
+    const ipHash = hashIp(getRealIp(req));
+    const rateLimit = await checkRateLimit("report", ipHash, REPORT_COOLDOWN_MS);
 
-    if (lastReport && now - lastReport < REPORT_COOLDOWN_MS) {
-      const waitSeconds = Math.ceil((REPORT_COOLDOWN_MS - (now - lastReport)) / 1000);
+    if (!rateLimit.allowed) {
       res.status(429).json({
-        error: `舉報冷卻中，請等待 ${waitSeconds} 秒`,
-        retryAfter: waitSeconds,
+        error: `舉報冷卻中，請等待 ${rateLimit.retryAfter} 秒`,
+        retryAfter: rateLimit.retryAfter,
       });
       return;
     }
@@ -498,9 +500,6 @@ export async function reportPostHandler(req: Request, res: Response) {
       res.status(statusCode).json({ error: result.error });
       return;
     }
-
-    // Update rate limit on success
-    reportRateLimitMap.set(ipHash, now);
 
     res.json({
       success: true,

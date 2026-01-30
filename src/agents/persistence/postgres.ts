@@ -21,6 +21,8 @@ export type Post = {
   authorName: string;
   linkPreview?: LinkPreview;
   editedAt?: Date | null;
+  deletedReason?: string | null;
+  deletedAt?: Date | null;
 };
 
 export type CreatePostResult = Post & {
@@ -54,6 +56,8 @@ export type ThreadDetail = {
   authorName: string;
   board?: { slug: string; name: string } | null;
   linkPreview?: LinkPreview;
+  deletedReason?: string | null;
+  deletedAt?: Date | null;
 };
 
 export type Board = {
@@ -284,10 +288,10 @@ export async function listThreads(limit: number): Promise<ThreadDetail[]> {
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id,
       p.title, p.author_name, p.board_id,
       b.slug as board_slug, b.name as board_name,
-      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count
+      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id AND r.status != 2) as reply_count
     FROM posts p
     LEFT JOIN boards b ON b.id = p.board_id
-    WHERE p.parent_id IS NULL
+    WHERE p.parent_id IS NULL AND p.status != 2
     ORDER BY p.created_at DESC
     LIMIT $1`,
     [limit],
@@ -318,11 +322,11 @@ export async function listThreadsByLastReply(limit: number): Promise<ThreadDetai
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id,
       p.title, p.author_name, p.board_id,
       b.slug as board_slug, b.name as board_name,
-      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count,
-      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id) as last_reply_at
+      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id AND r.status != 2) as reply_count,
+      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id AND r.status != 2) as last_reply_at
     FROM posts p
     LEFT JOIN boards b ON b.id = p.board_id
-    WHERE p.parent_id IS NULL
+    WHERE p.parent_id IS NULL AND p.status != 2
     ORDER BY last_reply_at DESC NULLS LAST
     LIMIT $1`,
     [limit],
@@ -363,11 +367,11 @@ export async function searchThreads(
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id,
       p.title, p.author_name, p.board_id,
       b.slug as board_slug, b.name as board_name,
-      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count,
-      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id) as last_reply_at
+      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id AND r.status != 2) as reply_count,
+      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id AND r.status != 2) as last_reply_at
     FROM posts p
     LEFT JOIN boards b ON b.id = p.board_id
-    WHERE p.parent_id IS NULL
+    WHERE p.parent_id IS NULL AND p.status != 2
       AND (p.title ILIKE $1 OR p.content ILIKE $1)
     ORDER BY p.created_at DESC
     LIMIT $2`,
@@ -404,9 +408,12 @@ export async function getThreadById(
       p.title, p.author_name, p.board_id, p.link_preview,
       b.slug as board_slug, b.name as board_name,
       (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count,
-      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id) as last_reply_at
+      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id AND r.status != 2) as last_reply_at,
+      ml.reason as deleted_reason,
+      ml.created_at as deleted_at
     FROM posts p
     LEFT JOIN boards b ON b.id = p.board_id
+    LEFT JOIN moderation_logs ml ON ml.target_type = 'post' AND ml.target_id = p.id::text AND ml.action = 'delete'
     WHERE p.id = $1`,
     [id],
   );
@@ -432,6 +439,8 @@ export async function getThreadById(
     replyCount: parseInt(row.reply_count, 10),
     lastReplyAt: row.last_reply_at,
     linkPreview: row.link_preview,
+    deletedReason: row.deleted_reason || null,
+    deletedAt: row.deleted_at || null,
   };
 }
 
@@ -444,10 +453,13 @@ export async function getReplies(
   offset: number,
 ): Promise<Post[]> {
   const result = await pool.query(
-    `SELECT id, content, status, ip_hash, created_at, parent_id, board_id, title, author_name, link_preview, edited_at
-    FROM posts
-    WHERE parent_id = $1
-    ORDER BY id ASC
+    `SELECT p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id, p.board_id,
+            p.title, p.author_name, p.link_preview, p.edited_at,
+            ml.reason as deleted_reason, ml.created_at as deleted_at
+    FROM posts p
+    LEFT JOIN moderation_logs ml ON ml.target_type = 'post' AND ml.target_id = p.id::text AND ml.action = 'delete'
+    WHERE p.parent_id = $1
+    ORDER BY p.id ASC
     LIMIT $2 OFFSET $3`,
     [threadId, limit, offset],
   );
@@ -464,6 +476,8 @@ export async function getReplies(
     authorName: row.author_name,
     linkPreview: row.link_preview,
     editedAt: row.edited_at,
+    deletedReason: row.deleted_reason || null,
+    deletedAt: row.deleted_at || null,
   }));
 }
 
@@ -475,7 +489,7 @@ export async function listBoards(): Promise<Board[]> {
   const result = await pool.query(
     `SELECT
       b.id, b.slug, b.name, b.description, b.display_order, b.is_active, b.created_at,
-      (SELECT COUNT(*) FROM posts p WHERE p.board_id = b.id AND p.parent_id IS NULL) as thread_count
+      (SELECT COUNT(*) FROM posts p WHERE p.board_id = b.id AND p.parent_id IS NULL AND p.status != 2) as thread_count
     FROM boards b
     WHERE b.is_active = true
     ORDER BY b.display_order ASC`,
@@ -501,7 +515,7 @@ export async function getBoardBySlug(slug: string): Promise<Board | null> {
   const result = await pool.query(
     `SELECT
       b.id, b.slug, b.name, b.description, b.display_order, b.is_active, b.created_at,
-      (SELECT COUNT(*) FROM posts p WHERE p.board_id = b.id AND p.parent_id IS NULL) as thread_count
+      (SELECT COUNT(*) FROM posts p WHERE p.board_id = b.id AND p.parent_id IS NULL AND p.status != 2) as thread_count
     FROM boards b
     WHERE b.slug = $1 AND b.is_active = true`,
     [slug],
@@ -561,10 +575,10 @@ export async function getBoardThreads(
     `SELECT
       p.id, p.content, p.status, p.ip_hash, p.created_at, p.parent_id, p.board_id,
       p.title, p.author_name,
-      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id) as reply_count,
-      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id) as last_reply_at
+      (SELECT COUNT(*) FROM posts r WHERE r.parent_id = p.id AND r.status != 2) as reply_count,
+      (SELECT MAX(r.created_at) FROM posts r WHERE r.parent_id = p.id AND r.status != 2) as last_reply_at
     FROM posts p
-    WHERE p.board_id = $1 AND p.parent_id IS NULL
+    WHERE p.board_id = $1 AND p.parent_id IS NULL AND p.status != 2
     ${orderClause}
     LIMIT $2 OFFSET $3`,
     [boardId, limit, offset],
