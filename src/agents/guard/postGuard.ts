@@ -4,16 +4,13 @@
  */
 
 import crypto from "crypto";
+import { checkRateLimit, checkDuplicateContent } from "../../utils/rateLimiter";
 
 const MAX_CONTENT_LENGTH = 10000;
-// simple in-memory rate limit (per process)
+// Post interval (3 seconds between posts)
 const POST_INTERVAL_MS = 3_000;
-// duplicate content detection window (30 seconds)
+// Duplicate content detection window (30 seconds)
 const DUPLICATE_WINDOW_MS = 30_000;
-
-const lastPostAtByIpHash: Record<string, number> = {};
-// Track recent content hashes per IP to prevent duplicates
-const recentContentByIpHash: Record<string, { hash: string; timestamp: number }[]> = {};
 
 export type PostGuardResult =
   | { ok: true; content: string }
@@ -75,10 +72,10 @@ function sanitizeEmbedTags(content: string): string {
   return result;
 }
 
-export function checkCreatePost(input: {
+export async function checkCreatePost(input: {
   content: unknown;
   ipHash: string;
-}): PostGuardResult {
+}): Promise<PostGuardResult> {
   const { content, ipHash } = input;
 
   if (typeof content !== "string") {
@@ -99,10 +96,9 @@ export function checkCreatePost(input: {
     };
   }
 
-  const now = Date.now();
-  const lastAt = lastPostAtByIpHash[ipHash];
-
-  if (lastAt && now - lastAt < POST_INTERVAL_MS) {
+  // Rate limiting (Redis-backed with in-memory fallback)
+  const rateLimit = await checkRateLimit("post", ipHash, POST_INTERVAL_MS);
+  if (!rateLimit.allowed) {
     return {
       ok: false,
       status: 429,
@@ -112,21 +108,7 @@ export function checkCreatePost(input: {
 
   // Check for duplicate content within the time window
   const contentHash = crypto.createHash("md5").update(normalized).digest("hex");
-
-  // Clean up old entries and check for duplicates
-  if (!recentContentByIpHash[ipHash]) {
-    recentContentByIpHash[ipHash] = [];
-  }
-
-  // Remove expired entries
-  recentContentByIpHash[ipHash] = recentContentByIpHash[ipHash].filter(
-    (entry) => now - entry.timestamp < DUPLICATE_WINDOW_MS
-  );
-
-  // Check if this content was already posted
-  const isDuplicate = recentContentByIpHash[ipHash].some(
-    (entry) => entry.hash === contentHash
-  );
+  const isDuplicate = await checkDuplicateContent(ipHash, contentHash, DUPLICATE_WINDOW_MS);
 
   if (isDuplicate) {
     return {
@@ -135,11 +117,6 @@ export function checkCreatePost(input: {
       error: "重複發文，請稍後再試",
     };
   }
-
-  // Record this content
-  recentContentByIpHash[ipHash].push({ hash: contentHash, timestamp: now });
-
-  lastPostAtByIpHash[ipHash] = now;
 
   // Sanitize embed tags to prevent XSS
   const sanitized = sanitizeEmbedTags(normalized);

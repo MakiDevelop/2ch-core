@@ -8,6 +8,7 @@
     "dockerode": "^4.0.9",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "ioredis": "^5.9.2",
     "pg": "^8.16.3",
     "safe-regex": "^2.1.1",
     "zod": "^4.3.6"
@@ -16,6 +17,7 @@
     "@types/body-parser": "^1.19.6",
     "@types/dockerode": "^4.0.0",
     "@types/express": "^5.0.6",
+    "@types/ioredis": "^4.28.10",
     "@types/pg": "^8.16.0",
     "@types/safe-regex": "^1.1.6",
     "tsx": "^4.21.0",
