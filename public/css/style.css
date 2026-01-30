@@ -2736,3 +2736,38 @@ footer {
     border-radius: 4px;
     cursor: pointer;
 }
+
+/* Deleted posts */
+.deleted-badge {
+    background: #dc3545;
+    color: #fff;
+    font-size: 0.75em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+.op-post.deleted,
+.reply-item.deleted {
+    opacity: 0.7;
+    background: var(--bg-tertiary);
+}
+
+.deleted-notice {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-muted);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.deleted-notice p {
+    margin: 0;
+}
+
+.deleted-notice .delete-reason {
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
