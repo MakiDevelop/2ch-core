@@ -616,23 +616,28 @@ const renderOP = (thread) => {
 
     const isArchived = thread.replyCount >= 999;
     const isDeleted = thread.status === 2;
-    const archivedBadge = isArchived ? '<span class="archived-badge">已封存</span>' : '';
-    const deletedBadge = isDeleted ? '<span class="deleted-badge">已刪除</span>' : '';
 
-    // 已刪除的帖子顯示刪除提示
-    const contentHtml = isDeleted
-        ? `<div class="deleted-notice">
-               <p>此討論串已被刪除</p>
-               <p class="delete-reason">刪除原因：${escapeHtml(thread.deletedReason || '違反版規')}</p>
-           </div>`
-        : `${parseContent(thread.content)}
-           ${renderLinkPreview(thread.linkPreview)}`;
+    // 已刪除的帖子：只顯示刪除通知，隱藏所有原始內容
+    if (isDeleted) {
+        const html = `
+            <div class="op-post deleted">
+                <div class="deleted-notice">
+                    <h2>此討論串已被刪除</h2>
+                    <p class="delete-reason">刪除原因：${escapeHtml(thread.deletedReason || '違反版規')}</p>
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+        return;
+    }
+
+    const archivedBadge = isArchived ? '<span class="archived-badge">已封存</span>' : '';
 
     const html = `
-        <div class="op-post${isArchived ? ' archived' : ''}${isDeleted ? ' deleted' : ''}">
+        <div class="op-post${isArchived ? ' archived' : ''}">
             <h2 class="thread-title">
                 <span class="title-text">${escapeHtml(thread.title || '無標題')}</span>
-                ${deletedBadge}${archivedBadge}
+                ${archivedBadge}
                 <span id="bookmark-btn-container"></span>
             </h2>
             <div class="post-header">
@@ -642,12 +647,13 @@ const renderOP = (thread) => {
                 ${thread.board ? `<span class="post-board">/${thread.board.slug}/</span>` : ''}
             </div>
             <div class="post-content">
-                ${contentHtml}
+                ${parseContent(thread.content)}
+                ${renderLinkPreview(thread.linkPreview)}
             </div>
             <div class="post-meta">
                 <span class="reply-count">${thread.replyCount || 0} 則回覆</span>
                 ${isArchived ? '<span class="archived-notice">此討論串已達 999 樓上限，已封存無法回覆</span>' : ''}
-                ${!isDeleted ? `<button class="report-post-btn op-report-btn" data-post-id="${thread.id}" title="檢舉此貼文">檢舉</button>` : ''}
+                <button class="report-post-btn op-report-btn" data-post-id="${thread.id}" title="檢舉此貼文">檢舉</button>
             </div>
         </div>
     `;
@@ -710,28 +716,39 @@ const renderReplies = (replies) => {
 
     const repliesHTML = reversedReplies.map(({ reply, floor }) => {
         const isDeleted = reply.status === 2;
-        const contentHtml = isDeleted
-            ? `<div class="deleted-notice">
-                   <p>此回覆已被刪除</p>
-                   <p class="delete-reason">刪除原因：${escapeHtml(reply.deletedReason || '違反版規')}</p>
-               </div>`
-            : `${parseContent(reply.content)}
-               ${renderLinkPreview(reply.linkPreview)}`;
+
+        // 已刪除的回覆：只顯示樓層和刪除原因
+        if (isDeleted) {
+            return `
+            <div class="reply-item deleted" id="reply-${floor}">
+                <div class="reply-header">
+                    <span class="reply-number" data-floor="${floor}">${floor}樓</span>
+                    <span class="deleted-badge">已刪除</span>
+                </div>
+                <div class="reply-content">
+                    <div class="deleted-notice">
+                        <p>此回覆已被刪除</p>
+                        <p class="delete-reason">刪除原因：${escapeHtml(reply.deletedReason || '違反版規')}</p>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
 
         return `
-        <div class="reply-item${isDeleted ? ' deleted' : ''}" id="reply-${floor}" data-content="${escapeHtml(reply.content)}">
+        <div class="reply-item" id="reply-${floor}" data-content="${escapeHtml(reply.content)}">
             <div class="reply-header">
                 <span class="reply-number" data-floor="${floor}">${floor}樓</span>
-                ${isDeleted ? '<span class="deleted-badge">已刪除</span>' : ''}
                 <span class="reply-author">${escapeHtml(reply.authorName || '名無しさん')}</span>
                 <span class="reply-id share-id" data-post-id="${reply.id}" data-floor="${floor}" title="點擊複製分享連結">#${reply.id}</span>
                 <span class="reply-time">${formatDate(reply.createdAt)}</span>
-                ${!isDeleted ? formatEditedTime(reply.editedAt, reply.createdAt) : ''}
-                ${!isDeleted ? `<button class="edit-post-btn" data-post-id="${reply.id}" title="編輯此回覆">編輯</button>` : ''}
-                ${!isDeleted ? `<button class="report-post-btn" data-post-id="${reply.id}" title="檢舉此回覆">檢舉</button>` : ''}
+                ${formatEditedTime(reply.editedAt, reply.createdAt)}
+                <button class="edit-post-btn" data-post-id="${reply.id}" title="編輯此回覆">編輯</button>
+                <button class="report-post-btn" data-post-id="${reply.id}" title="檢舉此回覆">檢舉</button>
             </div>
             <div class="reply-content">
-                ${contentHtml}
+                ${parseContent(reply.content)}
+                ${renderLinkPreview(reply.linkPreview)}
             </div>
         </div>
     `}).join('');
