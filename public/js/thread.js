@@ -569,6 +569,16 @@ const loadThread = async () => {
         // Render OP first
         renderOP(threadData);
 
+        // 已刪除的主帖：隱藏回覆區域和回覆表單
+        if (threadData.status === 2) {
+            document.getElementById('replies-list').innerHTML = '';
+            const replyForm = document.getElementById('reply-form');
+            if (replyForm) replyForm.style.display = 'none';
+            const repliesSection = document.querySelector('.replies-section');
+            if (repliesSection) repliesSection.style.display = 'none';
+            return;
+        }
+
         // Load replies (使用預載入或重新請求)
         if (window.__prefetchReplies) {
             repliesData = await window.__prefetchReplies;
