@@ -25,6 +25,30 @@
 
 ---
 
+## 2026-01-31: ERIKA 通訊管道選型 - LINE Bot
+
+**背景：** ERIKA 需要雙向通訊管道，用於通知人類決策點、接收指令
+
+**選項：**
+1. Telegram Bot - 雙向、即時、易開發
+2. LINE Bot (Messaging API) - 雙向、台灣主流通訊軟體
+3. LINE Notify + Webhook - 單向通知 + 其他管道接收
+4. Discord Bot - 雙向、易開發
+
+**決策：** 選項 2 - LINE Bot (Messaging API)
+
+**理由：**
+- LINE 是台灣最普及的通訊軟體，用戶日常使用
+- Messaging API 支援雙向溝通（推播 + 接收指令）
+- 可整合 Rich Menu、Quick Reply 等互動元件
+
+**風險/TODO：**
+- 需要 LINE Developers Console 設定 Channel
+- 需要 HTTPS webhook endpoint
+- 免費額度：每月 500 則推播訊息（超過需付費）
+
+---
+
 ## 2026-01-31: 五位一體模式啟動與權限分配
 
 **背景：** 專案導入五位一體 AI 協作模式，需明確定義各角色權限
