@@ -25,6 +25,24 @@
 
 ---
 
+## 2026-01-31: 五位一體模式啟動與權限分配
+
+**背景：** 專案導入五位一體 AI 協作模式，需明確定義各角色權限
+
+**決策：**
+- **ERIKA**：repo readonly 權限（監控、讀取、執行 task）
+- **Claude / Codex / Gemini**：可進行修改、commit、push
+
+**理由：**
+- ERIKA 定位為「執行監控」，不需要直接修改程式碼
+- 修改決策權集中在 Claude（總指揮）整合 Codex/Gemini 輸出後執行
+- 減少多 agent 同時修改造成的衝突風險
+
+**風險/TODO：**
+- ERIKA 若需執行部署，需另外設定 VPS 執行權限（非 repo 寫入權限）
+
+---
+
 ## 2026-01-30: Dev 環境資料庫 Schema 不同步問題
 
 **背景：** dev.2ch.tw 無法發文，錯誤訊息 `column "edit_token_hash" of relation "posts" does not exist`
