@@ -139,7 +139,7 @@ export async function createBoardThreadHandler(req: Request, res: Response) {
     const userAgent = getUserAgent(req);
 
     // Guard 检查
-    const guardResult = checkCreatePost({
+    const guardResult = await checkCreatePost({
       content,
       ipHash,
     });
