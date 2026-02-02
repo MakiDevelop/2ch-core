@@ -39,6 +39,9 @@ export {
   deleteBadwordHandler,
   badwordStatsHandler,
   importBadwordsHandler,
+  // Error reports
+  createErrorReportHandler,
+  listErrorReportsHandler,
 } from "./admin";
 
 export {

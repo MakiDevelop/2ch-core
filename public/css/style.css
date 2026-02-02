@@ -2771,3 +2771,284 @@ footer {
     font-size: 0.9em;
     color: var(--text-secondary);
 }
+
+/* ================================================
+   Announcement Modal (公告彈窗)
+   ================================================ */
+.announcement-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.announcement-overlay.closing {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.announcement-modal {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.announcement-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.announcement-header h2 {
+    font-size: 1.25em;
+    color: var(--text-heading);
+    margin: 0;
+}
+
+.announcement-body {
+    padding: 20px 24px;
+    color: var(--text-primary);
+    line-height: 1.7;
+}
+
+.announcement-body p {
+    margin-bottom: 12px;
+}
+
+.announcement-body p:last-child {
+    margin-bottom: 0;
+}
+
+.announcement-body a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.announcement-body a:hover {
+    text-decoration: underline;
+}
+
+.announcement-footer {
+    padding: 16px 24px 20px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border-primary);
+}
+
+.announcement-btn {
+    background: var(--accent-color);
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.announcement-btn:hover {
+    opacity: 0.85;
+}
+
+[data-theme="dark"] .announcement-btn {
+    background: var(--link-color);
+}
+
+/* Error Report Modal */
+.error-report-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    padding: 16px;
+    animation: fadeIn 0.2s ease;
+}
+
+.error-report-modal {
+    background: var(--bg-card, #1a1a1f);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.error-report-modal h3 {
+    padding: 20px 24px 0;
+    margin: 0;
+    font-size: 1.25em;
+    color: var(--text-primary, #fff);
+}
+
+.error-report-modal .report-hint {
+    padding: 8px 24px 0;
+    margin: 0;
+    color: var(--text-secondary, #888);
+    font-size: 0.9em;
+}
+
+.error-report-modal .error-detail {
+    margin: 16px 24px;
+    padding: 12px;
+    background: var(--bg-secondary, #252530);
+    border-radius: 6px;
+    font-size: 0.9em;
+    color: var(--text-secondary, #888);
+    word-break: break-word;
+}
+
+.error-report-modal .error-detail strong {
+    color: var(--text-primary, #fff);
+}
+
+.error-report-modal label {
+    display: block;
+    padding: 0 24px 8px;
+    color: var(--text-secondary, #888);
+    font-size: 0.9em;
+}
+
+.error-report-modal textarea {
+    display: block;
+    width: calc(100% - 48px);
+    margin: 0 24px;
+    padding: 12px;
+    border: 1px solid var(--border-primary, #333);
+    border-radius: 6px;
+    background: var(--bg-primary, #121215);
+    color: var(--text-primary, #fff);
+    font-size: 1em;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.error-report-modal textarea:focus {
+    outline: none;
+    border-color: var(--accent-color, #5b8ef4);
+}
+
+.error-report-error {
+    margin: 12px 24px;
+    padding: 10px;
+    background: rgba(255, 82, 82, 0.1);
+    border: 1px solid rgba(255, 82, 82, 0.3);
+    border-radius: 6px;
+    color: #ff5252;
+    font-size: 0.9em;
+}
+
+.error-report-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 20px 24px;
+}
+
+.error-report-actions button {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.cancel-report-btn {
+    background: transparent;
+    border: 1px solid var(--border-primary, #333);
+    color: var(--text-secondary, #888);
+}
+
+.cancel-report-btn:hover {
+    background: var(--bg-secondary, #252530);
+}
+
+.submit-report-btn {
+    background: var(--accent-color, #5b8ef4);
+    border: none;
+    color: #fff;
+}
+
+.submit-report-btn:hover {
+    opacity: 0.85;
+}
+
+.submit-report-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.error-report-modal .report-success {
+    padding: 32px 24px;
+    text-align: center;
+}
+
+.error-report-modal .report-success h3 {
+    padding: 0;
+    margin-bottom: 12px;
+    color: #4caf50;
+}
+
+.error-report-modal .report-success p {
+    color: var(--text-secondary, #888);
+    margin-bottom: 20px;
+}
+
+.error-report-modal .close-report-btn {
+    background: var(--accent-color, #5b8ef4);
+    border: none;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 1em;
+    cursor: pointer;
+}
+
+/* Error report link in message */
+.error-report-link {
+    background: transparent;
+    border: none;
+    color: var(--link-color, #5b8ef4);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: inherit;
+    padding: 0;
+    margin-left: 8px;
+}
+
+.error-report-link:hover {
+    opacity: 0.8;
+}

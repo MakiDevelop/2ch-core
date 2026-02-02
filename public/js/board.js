@@ -1,7 +1,7 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260120';
+const APP_VERSION = '20260202';
 
 // Get board slug from URL
 const getBoardSlug = () => {
@@ -565,7 +565,11 @@ if (postForm) {
 
     } catch (error) {
         console.error('Error posting:', error);
-        showMessage(error.message || '發文失敗，請稍後再試', 'error');
+        // Show error with report option
+        showErrorWithReport(
+            error.message || '發文失敗，請稍後再試',
+            { title, content, authorName: authorName || '名無しさん', board: boardSlug }
+        );
     } finally {
         isSubmitting = false;
         submitBtn.disabled = false;
@@ -581,6 +585,154 @@ const showMessage = (text, type = 'info') => {
     postMessage.textContent = text;
     postMessage.className = `message ${type}`;
     postMessage.hidden = false;
+};
+
+// Show error with report option
+const showErrorWithReport = (errorMsg, requestBody = null) => {
+    if (!postMessage) return;
+
+    postMessage.innerHTML = `
+        ${escapeHtml(errorMsg)}
+        <button class="error-report-link" onclick="showErrorReportModal('${escapeHtml(errorMsg)}', ${requestBody ? `'${btoa(encodeURIComponent(JSON.stringify(requestBody)))}'` : 'null'})">回報問題</button>
+    `;
+    postMessage.className = 'message error';
+    postMessage.hidden = false;
+};
+
+// Error reporting - save to localStorage first, then try to send to backend
+// This ensures errors are captured even if the backend is broken
+const ErrorReporter = {
+    STORAGE_KEY: '2ch_error_reports',
+
+    // Save error to localStorage
+    saveLocal: function(report) {
+        try {
+            const reports = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
+            reports.push({
+                ...report,
+                id: Date.now(),
+                savedAt: new Date().toISOString(),
+            });
+            // Keep only last 20 reports to avoid filling storage
+            if (reports.length > 20) reports.shift();
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(reports));
+            return true;
+        } catch (e) {
+            console.error('Failed to save error report locally:', e);
+            return false;
+        }
+    },
+
+    // Try to send to backend
+    sendToBackend: async function(report) {
+        try {
+            const response = await fetch('/error-reports', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(report),
+            });
+            return response.ok;
+        } catch (e) {
+            console.error('Failed to send error report to backend:', e);
+            return false;
+        }
+    },
+
+    // Main report function - saves locally first, then tries backend
+    report: async function(report) {
+        // Always save locally first
+        const savedLocally = this.saveLocal(report);
+
+        // Then try to send to backend (non-blocking)
+        const sentToBackend = await this.sendToBackend(report);
+
+        return { savedLocally, sentToBackend };
+    },
+
+    // Get unsent reports from localStorage
+    getLocalReports: function() {
+        try {
+            return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
+        } catch (e) {
+            return [];
+        }
+    },
+};
+
+// Show error report modal
+const showErrorReportModal = (errorMsg, encodedBody = null) => {
+    const requestBody = encodedBody ? JSON.parse(decodeURIComponent(atob(encodedBody))) : null;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'error-report-modal-overlay';
+
+    overlay.innerHTML = `
+        <div class="error-report-modal">
+            <h3>回報問題</h3>
+            <p class="report-hint">很抱歉造成不便。請描述您遇到的問題，我們會盡快修復。</p>
+            <div class="error-detail">
+                <strong>錯誤訊息：</strong>${escapeHtml(errorMsg)}
+            </div>
+            <label for="error-description">補充說明（選填）</label>
+            <textarea id="error-description" placeholder="例如：發文時按下送出後出現錯誤..." maxlength="1000"></textarea>
+            <div class="error-report-error" style="display: none;"></div>
+            <div class="error-report-actions">
+                <button class="cancel-report-btn">取消</button>
+                <button class="submit-report-btn">送出回報</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const errorDiv = overlay.querySelector('.error-report-error');
+    const submitBtn = overlay.querySelector('.submit-report-btn');
+    const cancelBtn = overlay.querySelector('.cancel-report-btn');
+
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
+
+    submitBtn.addEventListener('click', async () => {
+        const description = overlay.querySelector('#error-description').value.trim();
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '送出中...';
+        errorDiv.style.display = 'none';
+
+        const report = {
+            errorType: 'post_failure',
+            errorMessage: errorMsg,
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            userDescription: description || undefined,
+            requestBody: requestBody ? JSON.stringify(requestBody) : undefined,
+        };
+
+        const result = await ErrorReporter.report(report);
+
+        if (result.savedLocally || result.sentToBackend) {
+            const statusMsg = result.sentToBackend
+                ? '回報已送出，我們會盡快調查並修復問題。'
+                : '回報已儲存在本機，待網路恢復後將自動送出。';
+
+            overlay.querySelector('.error-report-modal').innerHTML = `
+                <div class="report-success">
+                    <h3>感謝您的回報</h3>
+                    <p>${statusMsg}</p>
+                    <button class="close-report-btn">關閉</button>
+                </div>
+            `;
+            overlay.querySelector('.close-report-btn').addEventListener('click', () => overlay.remove());
+        } else {
+            errorDiv.textContent = '回報儲存失敗，請截圖錯誤訊息並透過其他方式聯繫我們。';
+            errorDiv.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = '重試';
+        }
+    });
 };
 
 // Refresh button

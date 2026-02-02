@@ -38,6 +38,9 @@ import {
   deleteBadwordHandler,
   badwordStatsHandler,
   importBadwordsHandler,
+  // Error reports
+  createErrorReportHandler,
+  listErrorReportsHandler,
   sitemapHandler,
   robotsHandler,
   threadPageMiddleware,
@@ -105,6 +108,9 @@ app.post("/admin/badwords/import", importBadwordsHandler);
 app.put("/admin/badwords/:id", updateBadwordHandler);
 app.delete("/admin/badwords/:id", deleteBadwordHandler);
 
+// error reports API (錯誤回報)
+app.get("/admin/error-reports", listErrorReportsHandler);
+
 // boards API
 app.get("/boards", listBoardsHandler);
 app.get("/boards/:slug/threads", getBoardThreadsHandler);
@@ -121,6 +127,9 @@ app.get("/posts/:id", getThreadHandler);
 
 // search API
 app.get("/search", searchHandler);
+
+// error reports API (公開 - 讓用戶回報錯誤)
+app.post("/error-reports", createErrorReportHandler);
 
 // SEO: sitemap and robots.txt
 app.get("/sitemap.xml", sitemapHandler);

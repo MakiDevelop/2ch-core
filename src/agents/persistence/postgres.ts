@@ -858,3 +858,86 @@ export async function getSitemapData(): Promise<{
     })),
   };
 }
+
+// ============================================
+// Error Reports (錯誤回報)
+// ============================================
+
+export interface ErrorReport {
+  id: number;
+  errorType: string;
+  errorMessage: string | null;
+  url: string | null;
+  userAgent: string | null;
+  ipHash: string | null;
+  userDescription: string | null;
+  requestBody: string | null;
+  createdAt: Date;
+}
+
+export async function createErrorReport(input: {
+  errorType: string;
+  errorMessage?: string;
+  url?: string;
+  userAgent?: string;
+  ipHash?: string;
+  userDescription?: string;
+  requestBody?: string;
+}): Promise<ErrorReport> {
+  const result = await pool.query(
+    `INSERT INTO error_reports
+     (error_type, error_message, url, user_agent, ip_hash, user_description, request_body)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [
+      input.errorType,
+      input.errorMessage || null,
+      input.url || null,
+      input.userAgent || null,
+      input.ipHash || null,
+      input.userDescription || null,
+      input.requestBody || null,
+    ]
+  );
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    errorType: row.error_type,
+    errorMessage: row.error_message,
+    url: row.url,
+    userAgent: row.user_agent,
+    ipHash: row.ip_hash,
+    userDescription: row.user_description,
+    requestBody: row.request_body,
+    createdAt: row.created_at,
+  };
+}
+
+export async function listErrorReports(
+  limit: number = 50,
+  offset: number = 0
+): Promise<{ reports: ErrorReport[]; total: number }> {
+  const countResult = await pool.query("SELECT COUNT(*) FROM error_reports");
+  const total = parseInt(countResult.rows[0].count, 10);
+
+  const result = await pool.query(
+    `SELECT * FROM error_reports ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+
+  return {
+    reports: result.rows.map(row => ({
+      id: row.id,
+      errorType: row.error_type,
+      errorMessage: row.error_message,
+      url: row.url,
+      userAgent: row.user_agent,
+      ipHash: row.ip_hash,
+      userDescription: row.user_description,
+      requestBody: row.request_body,
+      createdAt: row.created_at,
+    })),
+    total,
+  };
+}

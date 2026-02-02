@@ -7,6 +7,8 @@ import {
   getSystemStats,
   listThreads,
   listThreadsByLastReply,
+  createErrorReport,
+  listErrorReports,
 } from "../persistence/postgres";
 import { checkAdminAuth, checkDeleteReason } from "../guard/adminGuard";
 import {
@@ -863,6 +865,80 @@ export async function importBadwordsHandler(req: Request, res: Response) {
     });
   } catch (err) {
     console.error("[BADWORD] Import error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+// ============================================
+// Error Reports (錯誤回報)
+// ============================================
+
+/**
+ * POST /error-reports
+ * 用戶回報錯誤（公開 API，不需要 admin 權限）
+ */
+export async function createErrorReportHandler(req: Request, res: Response) {
+  try {
+    const { errorType, errorMessage, url, userDescription, requestBody } = req.body;
+
+    if (!errorType || typeof errorType !== "string") {
+      res.status(400).json({ error: "errorType is required" });
+      return;
+    }
+
+    const userAgent = req.headers["user-agent"] || undefined;
+    const ipHash = getIpHash(req);
+
+    const report = await createErrorReport({
+      errorType,
+      errorMessage,
+      url,
+      userAgent,
+      ipHash,
+      userDescription,
+      requestBody: requestBody ? JSON.stringify(requestBody) : undefined,
+    });
+
+    res.status(201).json({ success: true, id: report.id });
+  } catch (err) {
+    console.error("[ERROR_REPORT] Create error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * GET /admin/error-reports
+ * 查看錯誤回報（需要 admin 權限）
+ */
+export async function listErrorReportsHandler(req: Request, res: Response) {
+  try {
+    const authResult = checkAdminAuth(req);
+    if (!authResult.ok) {
+      res.status(authResult.status).json({ error: authResult.error });
+      return;
+    }
+
+    const limitParam = req.query?.limit;
+    const offsetParam = req.query?.offset;
+
+    const parsedLimit = typeof limitParam === "string" ? Number(limitParam) : NaN;
+    const parsedOffset = typeof offsetParam === "string" ? Number(offsetParam) : NaN;
+
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 100) : 50;
+    const offset = Number.isFinite(parsedOffset) ? Math.max(parsedOffset, 0) : 0;
+
+    const result = await listErrorReports(limit, offset);
+
+    res.json({
+      reports: result.reports,
+      pagination: {
+        limit,
+        offset,
+        total: result.total,
+      },
+    });
+  } catch (err) {
+    console.error("[ERROR_REPORT] List error:", err);
     res.status(500).json({ error: "internal server error" });
   }
 }
