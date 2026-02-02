@@ -3052,3 +3052,32 @@ footer {
 .error-report-link:hover {
     opacity: 0.8;
 }
+
+.error-report-modal select {
+    display: block;
+    width: calc(100% - 48px);
+    margin: 0 24px 16px;
+    padding: 12px;
+    border: 1px solid var(--border-primary, #333);
+    border-radius: 6px;
+    background: var(--bg-primary, #121215);
+    color: var(--text-primary, #fff);
+    font-size: 1em;
+}
+
+.error-report-modal select:focus {
+    outline: none;
+    border-color: var(--accent-color, #5b8ef4);
+}
+
+/* Footer report link */
+.footer-report-link {
+    color: var(--text-secondary, #888);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.footer-report-link:hover {
+    color: var(--link-color, #5b8ef4);
+    text-decoration: underline;
+}
