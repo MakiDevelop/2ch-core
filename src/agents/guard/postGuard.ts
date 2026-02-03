@@ -34,7 +34,7 @@ const KEYBOARD_NEIGHBORS: Record<string, string> = {
 };
 
 // Common English words whitelist (to avoid false positives)
-// These are words that might have high keyboard adjacency but are legitimate
+// These are words that might have high keyboard adjacency or consonant clusters but are legitimate
 const COMMON_ENGLISH_WORDS = new Set([
   // Common words with adjacent keys
   "the", "and", "for", "are", "but", "not", "you", "all", "can", "had", "her", "was", "one", "our", "out",
@@ -47,6 +47,14 @@ const COMMON_ENGLISH_WORDS = new Set([
   "assert", "western", "easter", "faster", "master", "after", "water", "later", "better", "letter",
   "server", "never", "ever", "over", "under", "other", "where", "there", "here", "were", "tree", "free",
   "great", "create", "update", "delete", "select", "insert", "query", "search", "filter", "order",
+  // Words with consonant clusters (str, ngth, etc.)
+  "string", "strong", "strength", "strange", "straight", "stream", "street", "stress", "strike", "strip",
+  "through", "throw", "three", "thread", "length", "month", "growth", "health", "wealth", "think",
+  "thing", "bring", "spring", "script", "scratch", "screen", "split", "spread", "spray", "sprint",
+  // More common words
+  "just", "like", "know", "time", "very", "when", "come", "could", "make", "than", "first", "been",
+  "call", "who", "oil", "its", "now", "find", "long", "down", "day", "did", "get", "come", "made",
+  "may", "part", "about", "many", "then", "them", "would", "way", "look", "more", "these", "some",
 ]);
 
 type NoiseResult = { ok: true } | { ok: false; error: string };
@@ -77,6 +85,18 @@ function calcKeyboardAdjacencyRatio(text: string): number {
 function containsCommonEnglishWord(text: string): boolean {
   const words = text.toLowerCase().split(/[^a-z]+/).filter(w => w.length >= 3);
   return words.some(word => COMMON_ENGLISH_WORDS.has(word));
+}
+
+/**
+ * Count consecutive consonant clusters (for pronounceability check)
+ * Normal English rarely has 3+ consecutive consonants
+ * e.g., "gqgasehde" has "gqg" which is unpronounceable
+ */
+function countLongConsonantClusters(text: string): number {
+  const letters = text.toLowerCase().replace(/[^a-z]/g, "");
+  // Match 3+ consecutive consonants
+  const clusters = letters.match(/[bcdfghjklmnpqrstvwxyz]{3,}/g);
+  return clusters ? clusters.length : 0;
 }
 
 /**
@@ -179,20 +199,39 @@ function detectNoise(raw: string, isReply: boolean): NoiseResult {
     score += 2;
   }
 
+  // Pre-compute: check if text contains any common English word (used by multiple signals)
+  const hasCommonWord = letters.length > 5 ? containsCommonEnglishWord(text) : false;
+
   // Signal 7: High keyboard adjacency ratio (keyboard walk pattern)
   // Only trigger if: pure ASCII, length > 6, high adjacency, no common English words
-  if (letters.length > 6) {
+  if (letters.length > 6 && !hasCommonWord) {
     const adjacencyRatio = calcKeyboardAdjacencyRatio(text);
-    const hasCommonWord = containsCommonEnglishWord(text);
 
     // High adjacency and no recognizable English words = likely keyboard mash
     // Very high (>60%) = +3, high (>50%) = +2
-    if (!hasCommonWord) {
-      if (adjacencyRatio > 0.6) {
-        score += 3;
-      } else if (adjacencyRatio > 0.5) {
-        score += 2;
-      }
+    if (adjacencyRatio > 0.6) {
+      score += 3;
+    } else if (adjacencyRatio > 0.5) {
+      score += 2;
+    }
+  }
+
+  // Signal 8: No dictionary coverage (pure ASCII with no recognizable words)
+  // If text is long enough but contains zero common English words = suspicious
+  if (letters.length > 7 && !hasCommonWord) {
+    score += 2;
+  }
+
+  // Signal 9: Unpronounceable consonant clusters
+  // Normal English rarely has 3+ consecutive consonants (e.g., "gqg", "hdr")
+  // This catches gibberish like "gqgasehde" that avoids keyboard adjacency
+  // Only trigger if no common English words (to avoid false positives like "strength")
+  if (letters.length > 5 && !hasCommonWord) {
+    const clusterCount = countLongConsonantClusters(text);
+    if (clusterCount >= 2) {
+      score += 3;  // Multiple clusters = very suspicious
+    } else if (clusterCount === 1) {
+      score += 1;  // Single cluster = slightly suspicious
     }
   }
 
