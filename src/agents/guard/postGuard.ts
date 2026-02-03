@@ -185,9 +185,14 @@ function detectNoise(raw: string, isReply: boolean): NoiseResult {
     const adjacencyRatio = calcKeyboardAdjacencyRatio(text);
     const hasCommonWord = containsCommonEnglishWord(text);
 
-    // High adjacency (>50%) and no recognizable English words = likely keyboard mash
-    if (adjacencyRatio > 0.5 && !hasCommonWord) {
-      score += 2;
+    // High adjacency and no recognizable English words = likely keyboard mash
+    // Very high (>60%) = +3, high (>50%) = +2
+    if (!hasCommonWord) {
+      if (adjacencyRatio > 0.6) {
+        score += 3;
+      } else if (adjacencyRatio > 0.5) {
+        score += 2;
+      }
     }
   }
 
