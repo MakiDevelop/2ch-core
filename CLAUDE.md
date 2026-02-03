@@ -78,3 +78,24 @@ npx tsx scripts/seed-realistic-content.ts
 
 - `main` - Production (2ch.tw)
 - `develop` - Development (dev.2ch.tw)
+
+---
+
+## 開發規範（從事故中學到的教訓）
+
+### async/await 規則（2026-02-02 事故）
+
+**背景：** 將函數改為 async 但呼叫端沒加 await，導致發文功能故障 3 天。
+
+**強制規則：**
+1. ⚠️ **將函數改為 async 時，必須同時搜尋所有呼叫端並加上 await**
+2. ⚠️ **修改共用函數後，必須測試所有使用該函數的流程**
+3. TypeScript 不會警告「呼叫 async 函數但沒 await」，需人工檢查
+
+**檢查方式：**
+```bash
+# 找出所有呼叫該函數的地方
+grep -r "functionName(" src/
+```
+
+**參考：** `docs/decision-log.md` 2026-02-02 條目
