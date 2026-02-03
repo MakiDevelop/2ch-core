@@ -5,6 +5,8 @@
     "lint": "eslint \"src/**/*.ts\" --cache",
     "lint:fix": "eslint \"src/**/*.ts\" --cache --fix",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:post": "npx tsx scripts/test-post-guard.ts",
     "precommit": "npm run lint && npm run typecheck",
     "prepare": "husky"
@@ -33,13 +35,16 @@
     "@types/ioredis": "^4.28.10",
     "@types/pg": "^8.16.0",
     "@types/safe-regex": "^1.1.6",
+    "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "eslint": "^9.39.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
+    "supertest": "^7.2.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0"
+    "typescript-eslint": "^8.54.0",
+    "vitest": "^4.0.18"
   }
 }
