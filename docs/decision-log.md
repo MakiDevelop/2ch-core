@@ -25,6 +25,35 @@
 
 ---
 
+## 2026-02-03: TypeScript 品質修復完成
+
+**背景：** 2/2 incident 後品質調查發現 64 個 TypeScript 錯誤、41 個 ESLint 警告
+
+**修復內容：**
+
+| 問題 | 修復前 | 修復後 |
+|------|--------|--------|
+| TypeScript errors | 64 | 0 |
+| ESLint errors | 19 | 0 |
+| ESLint warnings | 22 | 21 |
+
+**關鍵修復：**
+1. **啟用 strictNullChecks** - 讓 discriminated union type narrowing 正常運作
+2. **posts.ts missing await** - 又發現一個跟 2/2 incident 同樣的 bug pattern！
+3. **floating promises** - boardPage.ts:146, threadPage.ts:172 沒有 .catch()
+4. **ThreadDetail type** - 補齊 boardSlug/boardName 屬性
+
+**新增防護：**
+- ESLint 9 + typescript-eslint + husky + lint-staged
+- pre-commit hook 會自動檢查 lint + typecheck
+- 核心規則：`no-floating-promises`, `no-misused-promises`（ERROR）
+
+**剩餘 21 個 warnings：**
+- 都是 `any` 類型和 unused vars，不影響正確性
+- 可以之後慢慢清理
+
+---
+
 ## 2026-01-31: ERIKA 通訊管道選型 - LINE Bot
 
 **背景：** ERIKA 需要雙向通訊管道，用於通知人類決策點、接收指令
