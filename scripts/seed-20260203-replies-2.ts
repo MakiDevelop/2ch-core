@@ -36,45 +36,84 @@ async function insertReply(
 }
 
 async function main() {
-  console.log('開始補充回覆（第二批）...');
+  console.log('開始補充回覆 (第二批)...');
 
-  // === 2869: 春節連假9天想補完遊戲 (acg) ===
-  await insertReply(2869, '>>4\n真的 戴耳機親戚還會問你在聽什麼', '名無しさん', 220);
-  await insertReply(2869, 'DLC難度超高\n做好被虐的準備', '魂系玩家', 200);
-  await insertReply(2869, '我還在打 Metaphor: ReFantazio\n100小時起跳', '名無しさん', 170);
-  await insertReply(2869, '過年就是要肝遊戲\n其他時間都在上班', '名無しさん', 140);
+  // === Thread 3615: Alex Honnold 徒手攀爬台北101 ===
+  // 現有 7 樓 (OP + 6 回覆)
+  console.log('補充 thread 3615 (Alex Honnold)...');
 
-  // === 2876: 過年追番清單分享 (acg) ===
-  await insertReply(2876, '芙莉蓮真的神\n每一集都想哭', '名無しさん', 215);
-  await insertReply(2876, '>>4\n同感 這季太多要追的', '名無しさん', 185);
-  await insertReply(2876, '藍色監獄第二季也推\n足球番燃起來', '名無しさん', 155);
-  await insertReply(2876, '過年就是要補番\n睡到自然醒 追番到天亮', '夜貓子', 125);
+  await insertReply(3615, `>>3
+他真的有研究過
+說他大腦杏仁核反應比較小`, '名無しさん', 200);
 
-  // === 2848: 過年想帶家人去泡溫泉 (life) ===
-  await insertReply(2848, '>>3\n礁溪真的貴爆\n過年價格是平日三倍', '名無しさん', 225);
-  await insertReply(2848, '陽明山也有溫泉\n離台北近 不用跑太遠', '名無しさん', 195);
-  await insertReply(2848, '推北投\n捷運到 很方便', '名無しさん', 165);
-  await insertReply(2848, '帶長輩的話\n谷關比較清幽\n老人家會喜歡', '孝順仔', 135);
+  await insertReply(3615, `101外牆那個傾斜角度
+想到就腿軟`, '名無しさん', 198);
 
-  // === 3664: 2026年Q1加薪4.1% (work) ===
-  await insertReply(3664, '>>5\n真的 缺的是奴工不是人才', '名無しさん', 210);
-  await insertReply(3664, '我們公司凍薪第三年了\n說要共體時艱', '名無しさん', 180);
-  await insertReply(3664, '年終都沒了還談加薪\n笑死', '社畜2號', 150);
-  await insertReply(3664, '轉職加薪比等公司調快多了\n建議直接看機會', '名無しさん', 120);
+  await insertReply(3615, `>>7
+酋長岩是垂直的
+101還有凹凸可以抓吧`, '名無しさん', 195);
 
-  // === 2932: 可以新增夜間模式嗎 (meta) ===
-  await insertReply(2932, '>>6\n確實 站長快來', '名無しさん', 230);
-  await insertReply(2932, '現在先用 Dark Reader 擋一下\n但原生支援還是比較好', '名無しさん', 200);
-  await insertReply(2932, '希望可以自動切換\n白天白底 晚上黑底', '名無しさん', 170);
-  await insertReply(2932, '+1 眼睛真的受不了', '名無しさん', 140);
+  await insertReply(3615, `紀錄片超好看
+Netflix有`, '爬山愛好者', 192);
 
-  // === 3968: 假冒名人投資詐騙 (news) ===
-  await insertReply(3968, '>>5\nMeta 真的是詐騙幫凶\n廣告費收爽爽 不管內容', '名無しさん', 205);
-  await insertReply(3968, '每次都是事後諸葛\n被騙的人就是會信', '名無しさん', 175);
-  await insertReply(3968, '我媽差點被騙\n幸好轉帳前有問我', '名無しさん', 145);
-  await insertReply(3968, '刑責太輕了\n詐騙犯關幾年出來又繼續', '名無しさん', 115);
+  // === Thread 2827: 大谷翔平確認出戰WBC了！ ===
+  // 現有 7 樓 (OP + 6 回覆)
+  console.log('補充 thread 2827 (大谷翔平)...');
 
-  console.log('完成！已補充回覆');
+  await insertReply(2827, `>>5
+那球真的可惜
+周東打那支安打...`, '名無しさん', 230);
+
+  await insertReply(2827, `日本隊陣容太豪華
+達比修+大谷+山本`, '野球迷', 228);
+
+  await insertReply(2827, `希望張育成有表現
+在大聯盟起起伏伏`, '名無しさん', 225);
+
+  await insertReply(2827, `>>7
+韓國今年也很強
+李政厚回來了`, '名無しさん', 222);
+
+  // === Thread 3671: 求職錄取率只有0.4%？ ===
+  // 現有 7 樓 (OP + 6 回覆)
+  console.log('補充 thread 3671 (求職)...');
+
+  await insertReply(3671, `>>4
+LinkedIn真的有用
+我就是這樣換工作的`, '轉職仔', 248);
+
+  await insertReply(3671, `履歷要針對JD改
+不要一份投到底`, '名無しさん', 245);
+
+  await insertReply(3671, `>>7
+ATS系統很煩
+格式跑掉就直接刷掉`, '名無しさん', 242);
+
+  await insertReply(3671, `現在大公司都先發線上測驗
+能力測驗+性格測驗`, 'HR路過', 238);
+
+  // === Thread 3197: Tinder 2026約會報告 ===
+  // 現有 7 樓 (OP + 6 回覆)
+  console.log('補充 thread 3197 (Tinder)...');
+
+  await insertReply(3197, `>>2
+曖昧期太長真的累
+不如直接問清楚`, '名無しさん', 260);
+
+  await insertReply(3197, `低壓約會很好
+第一次見面壓力不要太大`, '名無しさん', 258);
+
+  await insertReply(3197, `>>6
+詐騙是真的多
+但正常人也有`, '名無しさん', 255);
+
+  await insertReply(3197, `直球戀愛要看對象
+有些人受不了太直接`, '戀愛高手', 252);
+
+  await insertReply(3197, `Hinge比Tinder好用
+配對品質比較高`, '名無しさん', 248);
+
+  console.log('完成！');
 }
 
 main()
