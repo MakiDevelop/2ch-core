@@ -7,7 +7,7 @@ import {
   type ThreadSortType,
 } from "../persistence/postgres";
 import { checkCreatePost } from "../guard/postGuard";
-import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
+import { extractFirstUrl, fetchLinkPreview, type LinkPreview } from "../linkPreview";
 import crypto from "crypto";
 
 function getRealIp(req: Request): string {
@@ -152,7 +152,7 @@ export async function createBoardThreadHandler(req: Request, res: Response) {
     }
 
     // 嘗試解析第一個 URL 的 link preview（不阻塞，3秒 timeout）
-    let linkPreview = null;
+    let linkPreview: LinkPreview | null = null;
     const firstUrl = extractFirstUrl(guardResult.content);
     if (firstUrl) {
       try {

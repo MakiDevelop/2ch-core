@@ -9,7 +9,7 @@ import {
   updatePost,
 } from "../persistence/postgres";
 import { checkCreatePost, validateReplyReferences } from "../guard/postGuard";
-import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
+import { extractFirstUrl, fetchLinkPreview, type LinkPreview } from "../linkPreview";
 import { createReport } from "../service/moderationService";
 import { getRealIp, getUserAgent, hashIp } from "../../utils/ip";
 import { checkRateLimit } from "../../utils/rateLimiter";
@@ -38,7 +38,7 @@ export async function createPostHandler(req: Request, res: Response) {
     }
 
     // 1. Guard 檢查（最小防線）
-    const guardResult = checkCreatePost({
+    const guardResult = await checkCreatePost({
       content,
       ipHash,
     });
@@ -194,7 +194,7 @@ export async function createReplyHandler(req: Request, res: Response) {
     }
 
     // 嘗試解析第一個 URL 的 link preview（不阻塞，3秒 timeout）
-    let linkPreview = null;
+    let linkPreview: LinkPreview | null = null;
     const firstUrl = extractFirstUrl(guardResult.content);
     if (firstUrl) {
       try {

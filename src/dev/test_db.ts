@@ -5,7 +5,8 @@ async function main() {
   console.log("Inserting post...");
   await createPost({
     content: "Hello 2ch.tw 👋 這是第一篇匿名貼文",
-    ipHash: "dev-test-hash"
+    ipHash: "dev-test-hash",
+    userAgent: "test-script",
   });
 
   console.log("Fetching posts...");

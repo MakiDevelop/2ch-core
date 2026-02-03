@@ -143,9 +143,14 @@ export function boardPageMiddleware(
 
   // 其他所有請求（瀏覽器、爬蟲）都返回 SSR HTML
   req.params = { slug: match[1] };
-  boardPageHandler(req, res).then((handled) => {
-    if (!handled) {
+  boardPageHandler(req, res)
+    .then((handled) => {
+      if (!handled) {
+        next();
+      }
+    })
+    .catch((err) => {
+      console.error("[boardPageMiddleware] Error:", err);
       next();
-    }
-  });
+    });
 }

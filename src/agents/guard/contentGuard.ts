@@ -40,7 +40,8 @@ function normalizeText(text: string, homophoneMap: { [key: string]: string[] }):
   }
 
   // Remove common separators used to evade detection
-  normalized = normalized.replace(/[\s\*\.\-\_\+\=\|\~\`\!\@\#\$\%\^\&\(\)]/g, "");
+  // In character class [], most chars are literal; only ^, -, ], \ need escaping
+  normalized = normalized.replace(/[\s*.\-_+=|~`!@#$%^&()]/g, "");
 
   return normalized;
 }
