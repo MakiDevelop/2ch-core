@@ -34,7 +34,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装生产依赖 + tsx (用于运行 TypeScript)
-RUN npm ci --only=production && \
+# --ignore-scripts 跳過 prepare script (husky 只在開發環境需要)
+RUN npm ci --omit=dev --ignore-scripts && \
     npm install tsx && \
     npm cache clean --force
 
