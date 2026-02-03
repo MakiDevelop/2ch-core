@@ -25,7 +25,59 @@ const MIN_ASCII_CHARS_REPLY = 5;   // 回覆：純 ASCII 至少 5 字元
 // Noise detection threshold
 const NOISE_SCORE_THRESHOLD = 4;
 
+// QWERTY keyboard adjacency map (for keyboard walk detection)
+const KEYBOARD_NEIGHBORS: Record<string, string> = {
+  q: "wa", w: "qase", e: "wsdr", r: "edft", t: "rfgy", y: "tghu", u: "yhji", i: "ujko", o: "iklp", p: "ol",
+  a: "qwsz", s: "awedxz", d: "esrfcx", f: "drtgvc", g: "ftyhbv", h: "gyujnb", j: "huikmn", k: "jiolm", l: "kop",
+  z: "asx", x: "zsdc", c: "xdfv", v: "cfgb", b: "vghn", n: "bhjm", m: "njk",
+  "1": "2q", "2": "13qw", "3": "24we", "4": "35er", "5": "46rt", "6": "57ty", "7": "68yu", "8": "79ui", "9": "80io", "0": "9op",
+};
+
+// Common English words whitelist (to avoid false positives)
+// These are words that might have high keyboard adjacency but are legitimate
+const COMMON_ENGLISH_WORDS = new Set([
+  // Common words with adjacent keys
+  "the", "and", "for", "are", "but", "not", "you", "all", "can", "had", "her", "was", "one", "our", "out",
+  "were", "we", "as", "be", "been", "have", "in", "is", "it", "of", "on", "or", "that", "this", "to", "with",
+  "they", "at", "by", "from", "has", "he", "his", "how", "if", "me", "my", "no", "so", "up", "what", "when",
+  // Tech/internet terms
+  "test", "user", "data", "file", "code", "http", "https", "www", "html", "css", "api", "url", "web",
+  "post", "get", "set", "new", "add", "edit", "save", "load", "send", "read", "write", "true", "false",
+  // Words that might trigger adjacency detection
+  "assert", "western", "easter", "faster", "master", "after", "water", "later", "better", "letter",
+  "server", "never", "ever", "over", "under", "other", "where", "there", "here", "were", "tree", "free",
+  "great", "create", "update", "delete", "select", "insert", "query", "search", "filter", "order",
+]);
+
 type NoiseResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Calculate keyboard adjacency ratio (for keyboard walk detection)
+ * Returns the ratio of adjacent key pairs in the text
+ */
+function calcKeyboardAdjacencyRatio(text: string): number {
+  const letters = text.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (letters.length < 2) return 0;
+
+  let adjacentPairs = 0;
+  for (let i = 0; i < letters.length - 1; i++) {
+    const char1 = letters[i];
+    const char2 = letters[i + 1];
+    const neighbors = KEYBOARD_NEIGHBORS[char1];
+    if (neighbors && neighbors.includes(char2)) {
+      adjacentPairs++;
+    }
+  }
+  return adjacentPairs / (letters.length - 1);
+}
+
+/**
+ * Check if text contains any common English word (3+ chars)
+ */
+function containsCommonEnglishWord(text: string): boolean {
+  const words = text.toLowerCase().split(/[^a-z]+/).filter(w => w.length >= 3);
+  return words.some(word => COMMON_ENGLISH_WORDS.has(word));
+}
 
 /**
  * Count CJK (Chinese/Japanese/Korean) characters
@@ -127,6 +179,18 @@ function detectNoise(raw: string, isReply: boolean): NoiseResult {
     score += 2;
   }
 
+  // Signal 7: High keyboard adjacency ratio (keyboard walk pattern)
+  // Only trigger if: pure ASCII, length > 6, high adjacency, no common English words
+  if (letters.length > 6) {
+    const adjacencyRatio = calcKeyboardAdjacencyRatio(text);
+    const hasCommonWord = containsCommonEnglishWord(text);
+
+    // High adjacency (>50%) and no recognizable English words = likely keyboard mash
+    if (adjacencyRatio > 0.5 && !hasCommonWord) {
+      score += 2;
+    }
+  }
+
   if (score >= NOISE_SCORE_THRESHOLD) {
     return { ok: false, error: "內容疑似亂碼，請輸入有意義的文字" };
   }
@@ -157,10 +221,20 @@ function validateTitle(title: string | undefined): NoiseResult {
 
   // Quick keyboard mash check for title
   const keyboardMash = /(asdf|qwer|zxcv|dfasd)/i.test(trimmed);
-  const hasRepetition = /(.)(\1){3,}/.test(trimmed);
+  const hasRepetition = /(.)\1{3,}/.test(trimmed);
 
   if (keyboardMash || hasRepetition) {
     return { ok: false, error: "標題疑似亂碼" };
+  }
+
+  // Check keyboard adjacency for ASCII-only titles
+  if (cjkCount === 0 && trimmed.length > 4) {
+    const adjacencyRatio = calcKeyboardAdjacencyRatio(trimmed);
+    const hasCommonWord = containsCommonEnglishWord(trimmed);
+
+    if (adjacencyRatio > 0.6 && !hasCommonWord) {
+      return { ok: false, error: "標題疑似亂碼" };
+    }
   }
 
   return { ok: true };
