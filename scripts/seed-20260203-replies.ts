@@ -38,40 +38,66 @@ async function insertReply(
 async function main() {
   console.log('開始補充回覆...');
 
-  // === 6051: 這衣服怎麼辦到的 (Threads 連結，視覺錯覺衣服) ===
-  await insertReply(6051, '這也太強 設計師是天才吧', '名無しさん', 18);
-  await insertReply(6051, '靠北我看了三遍才看懂\n原來是這樣剪裁的', '名無しさん', 15);
-  await insertReply(6051, '>>2\n我到現在還是看不懂', '名無しさん', 12);
-  await insertReply(6051, '這種衣服穿出去一定被狂看', '時尚大師', 8);
-  await insertReply(6051, '想買 有人知道品牌嗎', '名無しさん', 5);
+  // === Thread 6052: 房價跌一跌才買得起啦~ ===
+  // 現有 7 樓 (OP + 6 回覆)
+  console.log('補充 thread 6052 (房價)...');
 
-  // === 6052: 房價跌一跌才買得起啦~ (三立新聞連結) ===
-  await insertReply(6052, '等房價跌的都等到生小孩了', '名無しさん', 20);
-  await insertReply(6052, '跌？你是說少漲嗎', '名無しさん', 17);
-  await insertReply(6052, '>>2\n笑死 真的 少漲2%就叫跌了', '無殼蝸牛', 14);
-  await insertReply(6052, '我已經放棄了 租一輩子', '名無しさん', 10);
-  await insertReply(6052, '南部還是買得起啦\n台北就...', '名無しさん', 6);
-  await insertReply(6052, '政府打房打了幾年了？\n有用嗎', '名無しさん', 3);
+  await insertReply(6052, `>>5
+同感 乾脆躺平算了
+反正也存不到頭期款`, '名無しさん', 18);
 
-  // === 6061: 給版主（網站安全建議） ===
-  await insertReply(6061, '版主加油 這站很有潛力', '名無しさん', 22);
-  await insertReply(6061, 'Cloudflare 先掛上去吧', '名無しさん', 19);
-  await insertReply(6061, '>>2\n+1 基本中的基本', '資安新手', 15);
-  await insertReply(6061, '希望別被打掛\n好不容易有個新論壇', '名無しさん', 10);
+  await insertReply(6052, `>>6
+南部也在漲好嗎
+高雄這幾年漲翻`, '名無しさん', 16);
 
-  // === 3847: 過年有開的餐廳推薦（補充更多） ===
-  await insertReply(3847, '火鍋店很多過年都有開\n但要訂位', '名無しさん', 200);
-  await insertReply(3847, '>>6\n對 便利商店 YYDS', '名無しさん', 180);
-  await insertReply(3847, '推薦饒河夜市\n過年也有很多攤位', '夜市控', 150);
-  await insertReply(3847, '台北車站微風也有開', '名無しさん', 120);
+  await insertReply(6052, `少子化這麼嚴重
+以後房子應該會便宜吧？
+...應該吧？`, '等房仔', 14);
 
-  // === 2841: 春節連假9天怎麼安排（補充更多） ===
-  await insertReply(2841, '>>6\n武陵真的難訂\n我去年十月就訂了', '名無しさん', 210);
-  await insertReply(2841, '宅在家打電動\n完美', '肥宅', 190);
-  await insertReply(2841, '出國的機票超貴\n日本來回三萬', '名無しさん', 160);
-  await insertReply(2841, '初二回娘家 初三開始自由\n應該會去走走', '名無しさん', 130);
+  await insertReply(6052, `>>10
+等少子化房子跌
+你可能先等到地震或海平面上升`, '名無しさん', 12);
 
-  console.log('完成！已補充回覆');
+  // === Thread 2834: 外資把台積電目標價調到2400了 ===
+  // 現有 7 樓 (OP + 6 回覆)
+  console.log('補充 thread 2834 (台積電)...');
+
+  await insertReply(2834, `>>2
+說怕被套的都沒買到
+結果一路漲`, '名無しさん', 220);
+
+  await insertReply(2834, `AI需求不減的話
+2400不是問題`, '名無しさん', 218);
+
+  await insertReply(2834, `外資報告看看就好
+他們自己先買完才喊的`, '韭菜', 215);
+
+  await insertReply(2834, `>>5
+CoWoS真的猛
+聽說排隊排到2027`, '名無しさん', 212);
+
+  // === Thread 2883: CES 2026：黃仁勳說「物理AI的ChatGPT時刻到了」===
+  // 現有 7 樓 (OP + 6 回覆)
+  console.log('補充 thread 2883 (CES AI)...');
+
+  await insertReply(2883, `老黃講話一向很敢
+但這次真的有東西`, '名無しさん', 220);
+
+  await insertReply(2883, `>>2
+中國機器人便宜很多
+但精度還是差一截`, '名無しさん', 218);
+
+  await insertReply(2883, `自駕車快要成熟了吧
+特斯拉FSD進步很大`, '名無しさん', 215);
+
+  await insertReply(2883, `>>4
+高齡科技是真的
+日本超多長照機器人`, '台灣人口老化中', 212);
+
+  await insertReply(2883, `開源模型是什麼？
+有人有連結嗎`, '名無しさん', 208);
+
+  console.log('完成！');
 }
 
 main()
