@@ -174,10 +174,11 @@ export async function createReplyHandler(req: Request, res: Response) {
     const ipHash = hashIp(realIp);
     const userAgent = getUserAgent(req);
 
-    // Guard 检查
+    // Guard 检查（isReply = true 允許較短內容如「草」）
     const guardResult = await checkCreatePost({
       content,
       ipHash,
+      isReply: true,
     });
 
     if (!guardResult.ok) {

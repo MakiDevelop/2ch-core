@@ -138,10 +138,12 @@ export async function createBoardThreadHandler(req: Request, res: Response) {
     const ipHash = getIpHash(realIp);
     const userAgent = getUserAgent(req);
 
-    // Guard 检查
+    // Guard 检查（發新文，需驗證標題）
     const guardResult = await checkCreatePost({
       content,
       ipHash,
+      isReply: false,
+      title: title.trim(),
     });
 
     if (!guardResult.ok) {
