@@ -38,7 +38,7 @@ export async function createPostHandler(req: Request, res: Response) {
     }
 
     // 1. Guard 檢查（最小防線）
-    const guardResult = checkCreatePost({
+    const guardResult = await checkCreatePost({
       content,
       ipHash,
     });

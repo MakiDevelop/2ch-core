@@ -4,6 +4,9 @@
     "start": "npx tsx src/main.ts",
     "lint": "eslint \"src/**/*.ts\" --cache",
     "lint:fix": "eslint \"src/**/*.ts\" --cache --fix",
+    "typecheck": "tsc --noEmit",
+    "test:post": "npx tsx scripts/test-post-guard.ts",
+    "precommit": "npm run lint && npm run typecheck",
     "prepare": "husky"
   },
   "lint-staged": {
