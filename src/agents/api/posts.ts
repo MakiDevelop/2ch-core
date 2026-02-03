@@ -9,7 +9,7 @@ import {
   updatePost,
 } from "../persistence/postgres";
 import { checkCreatePost, validateReplyReferences } from "../guard/postGuard";
-import { extractFirstUrl, fetchLinkPreview } from "../linkPreview";
+import { extractFirstUrl, fetchLinkPreview, type LinkPreview } from "../linkPreview";
 import { createReport } from "../service/moderationService";
 import { getRealIp, getUserAgent, hashIp } from "../../utils/ip";
 import { checkRateLimit } from "../../utils/rateLimiter";
@@ -174,10 +174,11 @@ export async function createReplyHandler(req: Request, res: Response) {
     const ipHash = hashIp(realIp);
     const userAgent = getUserAgent(req);
 
-    // Guard 检查
+    // Guard 检查（isReply = true 允許較短內容如「草」）
     const guardResult = await checkCreatePost({
       content,
       ipHash,
+      isReply: true,
     });
 
     if (!guardResult.ok) {
@@ -193,7 +194,7 @@ export async function createReplyHandler(req: Request, res: Response) {
     }
 
     // 嘗試解析第一個 URL 的 link preview（不阻塞，3秒 timeout）
-    let linkPreview = null;
+    let linkPreview: LinkPreview | null = null;
     const firstUrl = extractFirstUrl(guardResult.content);
     if (firstUrl) {
       try {

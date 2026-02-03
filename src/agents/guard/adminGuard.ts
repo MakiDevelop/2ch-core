@@ -9,7 +9,7 @@
 
 import crypto from "crypto";
 
-type AdminGuardResult =
+export type AdminGuardResult =
   | { ok: true }
   | { ok: false; status: number; error: string };
 

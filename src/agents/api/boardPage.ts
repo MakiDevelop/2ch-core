@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { getBoardBySlug } from "../persistence/postgres";
 import fs from "fs";
 import path from "path";
@@ -67,7 +67,7 @@ export async function boardPageHandler(req: Request, res: Response) {
     );
 
     // 替換 meta tags
-    let html = templateHtml
+    const html = templateHtml
       // Page title
       .replace(
         /<title[^>]*>.*?<\/title>/i,
@@ -121,7 +121,7 @@ export async function boardPageHandler(req: Request, res: Response) {
 export function boardPageMiddleware(
   req: Request,
   res: Response,
-  next: () => void
+  next: NextFunction
 ) {
   // 只處理 GET /boards/:slug/threads 路徑
   const match = req.path.match(/^\/boards\/([a-z0-9-]+)\/threads$/);

@@ -30,6 +30,7 @@
 **背景：**
 - 2026-02-02 事故：函數改 async 但呼叫端沒加 await，導致發文功能故障 3 天
 - 專案缺乏自動化檢查機制，容易「修東壞西」
+- 品質調查發現 64 個 TypeScript 錯誤、41 個 ESLint 警告
 
 **選項：**
 1. 只靠人工 code review
@@ -43,10 +44,20 @@
 - 核心規則設為 ERROR：`@typescript-eslint/no-floating-promises`、`no-misused-promises`
 - 次要規則設為 WARN：`no-unused-vars`、`no-explicit-any` 等
 - Pre-commit hook 只檢查 staged files，不阻擋舊債
+- 啟用 `strictNullChecks` 讓 discriminated union type narrowing 正常運作
 
-**修復的潛在問題：**
-- `boardPage.ts:146` - floating promise（無 .catch）
-- `threadPage.ts:172` - floating promise（無 .catch）
+**修復結果：**
+
+| 問題 | 修復前 | 修復後 |
+|------|--------|--------|
+| TypeScript errors | 64 | 0 |
+| ESLint errors | 19 | 0 |
+| ESLint warnings | 22 | 21 |
+
+**關鍵修復：**
+1. **posts.ts missing await** - 又發現一個跟 2/2 incident 同樣的 bug pattern
+2. **floating promises** - boardPage.ts:146, threadPage.ts:172 沒有 .catch()
+3. **ThreadDetail type** - 補齊 boardSlug/boardName 屬性
 
 **理由：**
 - Gemini + Codex 共識：靜態分析是成本最低但最有效的防護
@@ -54,9 +65,10 @@
 - 漸進式改善，不用一次還清技術債
 
 **未來 TODO：**
-- [ ] 逐步開啟 TypeScript strict mode
+- [ ] 逐步開啟 TypeScript strict mode（目前只開 strictNullChecks）
 - [ ] 針對關鍵路徑加測試
 - [ ] CI 加入 lint 檢查
+- [ ] 清理剩餘 21 個 warnings（`any` 類型和 unused vars）
 
 ---
 

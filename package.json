@@ -10,7 +10,10 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "src/**/*.ts": "eslint --cache"
+    "src/**/*.ts": [
+      "eslint --cache --fix",
+      "bash -c 'npx tsc --noEmit'"
+    ]
   },
   "dependencies": {
     "body-parser": "^2.2.1",

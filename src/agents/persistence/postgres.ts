@@ -50,11 +50,13 @@ export type ThreadDetail = {
   createdAt: Date;
   parentId: number | null;
   replyCount: number;
-  lastReplyAt: Date | null;
+  lastReplyAt?: Date | null;
   boardId?: number | null;
   title?: string | null;
   authorName: string;
   board?: { slug: string; name: string } | null;
+  boardSlug?: string | null;
+  boardName?: string | null;
   linkPreview?: LinkPreview;
   deletedReason?: string | null;
   deletedAt?: Date | null;

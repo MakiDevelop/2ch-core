@@ -12,6 +12,278 @@ const POST_INTERVAL_MS = 3_000;
 // Duplicate content detection window (30 seconds)
 const DUPLICATE_WINDOW_MS = 30_000;
 
+// ============================================================
+// Anti-spam: Noise/Gibberish Detection (2ch-style, user-invisible)
+// ============================================================
+
+// Minimum content length (CJK vs ASCII)
+const MIN_CJK_CHARS_THREAD = 2;    // 發文：至少 2 個中日文字
+const MIN_CJK_CHARS_REPLY = 1;     // 回覆：允許「草」「乙」
+const MIN_ASCII_CHARS_THREAD = 8;  // 發文：純 ASCII 至少 8 字元
+const MIN_ASCII_CHARS_REPLY = 5;   // 回覆：純 ASCII 至少 5 字元
+
+// Noise detection threshold
+const NOISE_SCORE_THRESHOLD = 4;
+
+// QWERTY keyboard adjacency map (for keyboard walk detection)
+const KEYBOARD_NEIGHBORS: Record<string, string> = {
+  q: "wa", w: "qase", e: "wsdr", r: "edft", t: "rfgy", y: "tghu", u: "yhji", i: "ujko", o: "iklp", p: "ol",
+  a: "qwsz", s: "awedxz", d: "esrfcx", f: "drtgvc", g: "ftyhbv", h: "gyujnb", j: "huikmn", k: "jiolm", l: "kop",
+  z: "asx", x: "zsdc", c: "xdfv", v: "cfgb", b: "vghn", n: "bhjm", m: "njk",
+  "1": "2q", "2": "13qw", "3": "24we", "4": "35er", "5": "46rt", "6": "57ty", "7": "68yu", "8": "79ui", "9": "80io", "0": "9op",
+};
+
+// Common English words whitelist (to avoid false positives)
+// These are words that might have high keyboard adjacency or consonant clusters but are legitimate
+const COMMON_ENGLISH_WORDS = new Set([
+  // Common words with adjacent keys
+  "the", "and", "for", "are", "but", "not", "you", "all", "can", "had", "her", "was", "one", "our", "out",
+  "were", "we", "as", "be", "been", "have", "in", "is", "it", "of", "on", "or", "that", "this", "to", "with",
+  "they", "at", "by", "from", "has", "he", "his", "how", "if", "me", "my", "no", "so", "up", "what", "when",
+  // Tech/internet terms
+  "test", "user", "data", "file", "code", "http", "https", "www", "html", "css", "api", "url", "web",
+  "post", "get", "set", "new", "add", "edit", "save", "load", "send", "read", "write", "true", "false",
+  // Words that might trigger adjacency detection
+  "assert", "western", "easter", "faster", "master", "after", "water", "later", "better", "letter",
+  "server", "never", "ever", "over", "under", "other", "where", "there", "here", "were", "tree", "free",
+  "great", "create", "update", "delete", "select", "insert", "query", "search", "filter", "order",
+  // Words with consonant clusters (str, ngth, etc.)
+  "string", "strong", "strength", "strange", "straight", "stream", "street", "stress", "strike", "strip",
+  "through", "throw", "three", "thread", "length", "month", "growth", "health", "wealth", "think",
+  "thing", "bring", "spring", "script", "scratch", "screen", "split", "spread", "spray", "sprint",
+  // More common words
+  "just", "like", "know", "time", "very", "when", "come", "could", "make", "than", "first", "been",
+  "call", "who", "oil", "its", "now", "find", "long", "down", "day", "did", "get", "come", "made",
+  "may", "part", "about", "many", "then", "them", "would", "way", "look", "more", "these", "some",
+]);
+
+type NoiseResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Calculate keyboard adjacency ratio (for keyboard walk detection)
+ * Returns the ratio of adjacent key pairs in the text
+ */
+function calcKeyboardAdjacencyRatio(text: string): number {
+  const letters = text.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (letters.length < 2) return 0;
+
+  let adjacentPairs = 0;
+  for (let i = 0; i < letters.length - 1; i++) {
+    const char1 = letters[i];
+    const char2 = letters[i + 1];
+    const neighbors = KEYBOARD_NEIGHBORS[char1];
+    if (neighbors && neighbors.includes(char2)) {
+      adjacentPairs++;
+    }
+  }
+  return adjacentPairs / (letters.length - 1);
+}
+
+/**
+ * Check if text contains any common English word (3+ chars)
+ */
+function containsCommonEnglishWord(text: string): boolean {
+  const words = text.toLowerCase().split(/[^a-z]+/).filter(w => w.length >= 3);
+  return words.some(word => COMMON_ENGLISH_WORDS.has(word));
+}
+
+/**
+ * Count consecutive consonant clusters (for pronounceability check)
+ * Normal English rarely has 3+ consecutive consonants
+ * e.g., "gqgasehde" has "gqg" which is unpronounceable
+ */
+function countLongConsonantClusters(text: string): number {
+  const letters = text.toLowerCase().replace(/[^a-z]/g, "");
+  // Match 3+ consecutive consonants
+  const clusters = letters.match(/[bcdfghjklmnpqrstvwxyz]{3,}/g);
+  return clusters ? clusters.length : 0;
+}
+
+/**
+ * Count CJK (Chinese/Japanese/Korean) characters
+ */
+function countCjkChars(text: string): number {
+  // CJK Unified Ideographs, Hiragana, Katakana, Hangul
+  const cjkMatch = text.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g);
+  return cjkMatch ? cjkMatch.length : 0;
+}
+
+/**
+ * Detect gibberish/noise content using score-based approach
+ * Returns ok:false only when score >= threshold (avoid false positives)
+ */
+function detectNoise(raw: string, isReply: boolean): NoiseResult {
+  // Remove >>N references and trim
+  const text = raw.replace(/>>(\d+)/g, "").trim();
+
+  if (text.length === 0) {
+    return { ok: false, error: "內容不能為空" };
+  }
+
+  // Count CJK characters
+  const cjkCount = countCjkChars(text);
+  const hasCjk = cjkCount > 0;
+
+  // Minimum length check (different for thread vs reply)
+  if (hasCjk) {
+    const minCjk = isReply ? MIN_CJK_CHARS_REPLY : MIN_CJK_CHARS_THREAD;
+    if (cjkCount < minCjk) {
+      return { ok: false, error: `內容過短（至少需要 ${minCjk} 個中日文字）` };
+    }
+    // CJK content passes - skip noise detection for natural language
+    return { ok: true };
+  }
+
+  // === Whitelist: Common internet slang (passes without further checks) ===
+  const lowerText = text.toLowerCase();
+  const whitelist = ["www", "lol", "wtf", "omg", "gg", "xd", "ok", "hi", "yo", "thx", "ty", "np"];
+  if (whitelist.includes(lowerText)) {
+    return { ok: true };
+  }
+
+  // For ASCII-only content, apply stricter checks
+  const minAscii = isReply ? MIN_ASCII_CHARS_REPLY : MIN_ASCII_CHARS_THREAD;
+  if (text.length < minAscii) {
+    return { ok: false, error: `內容過短（至少需要 ${minAscii} 個字元）` };
+  }
+
+  // === Score-based noise detection for ASCII-only content ===
+  let score = 0;
+
+  // eslint-disable-next-line no-control-regex
+  const ascii = text.replace(/[^\x00-\x7F]/g, "");
+  const letters = ascii.replace(/[^a-z]/gi, "");
+  const vowelCount = (letters.match(/[aeiou]/gi) || []).length;
+  const vowelRatio = letters.length > 0 ? vowelCount / letters.length : 0;
+  const uniqueChars = new Set(text).size;
+  const uniqueRatio = uniqueChars / Math.max(text.length, 1);
+  const tokens = text.split(/\s+/).filter(t => t.length >= 2);
+
+  // Signal 1: Very short ASCII with few vowels (dfasdf pattern)
+  if (text.length < 10 && ascii.length === text.length && vowelRatio < 0.2) {
+    score += 2;
+  }
+
+  // Signal 2: Keyboard mash patterns (higher score if it's the entire content)
+  const keyboardMashPattern = /(asdf|qwer|zxcv|dfasd|jkl;|uiop)/i;
+  const keyboardMash = keyboardMashPattern.test(text);
+  if (keyboardMash) {
+    // If keyboard mash is > 50% of the content, it's definitely spam
+    const mashMatch = text.match(keyboardMashPattern);
+    if (mashMatch && mashMatch[0].length * 2 >= text.length) {
+      score += 3;
+    } else {
+      score += 2;
+    }
+  }
+
+  // Signal 3: Character repetition (dddddd)
+  const hasRepetition = /(.)\1{3,}/.test(text);
+  if (hasRepetition) {
+    score += 2;
+  }
+
+  // Signal 4: Abnormal unique character ratio
+  // Too low (dddddd) or too high (random chars)
+  if (uniqueRatio < 0.3 || (text.length < 10 && uniqueRatio > 0.9)) {
+    score += 1;
+  }
+
+  // Signal 5: Too few meaningful tokens
+  if (tokens.length < 2 && text.length > 5) {
+    score += 1;
+  }
+
+  // Signal 6: No vowels in pure letters (not a real word)
+  if (letters.length >= 4 && vowelRatio === 0) {
+    score += 2;
+  }
+
+  // Pre-compute: check if text contains any common English word (used by multiple signals)
+  const hasCommonWord = letters.length > 5 ? containsCommonEnglishWord(text) : false;
+
+  // Signal 7: High keyboard adjacency ratio (keyboard walk pattern)
+  // Only trigger if: pure ASCII, length > 6, high adjacency, no common English words
+  if (letters.length > 6 && !hasCommonWord) {
+    const adjacencyRatio = calcKeyboardAdjacencyRatio(text);
+
+    // High adjacency and no recognizable English words = likely keyboard mash
+    // Very high (>60%) = +3, high (>50%) = +2
+    if (adjacencyRatio > 0.6) {
+      score += 3;
+    } else if (adjacencyRatio > 0.5) {
+      score += 2;
+    }
+  }
+
+  // Signal 8: No dictionary coverage (pure ASCII with no recognizable words)
+  // If text is long enough but contains zero common English words = suspicious
+  if (letters.length > 7 && !hasCommonWord) {
+    score += 2;
+  }
+
+  // Signal 9: Unpronounceable consonant clusters
+  // Normal English rarely has 3+ consecutive consonants (e.g., "gqg", "hdr")
+  // This catches gibberish like "gqgasehde" that avoids keyboard adjacency
+  // Only trigger if no common English words (to avoid false positives like "strength")
+  if (letters.length > 5 && !hasCommonWord) {
+    const clusterCount = countLongConsonantClusters(text);
+    if (clusterCount >= 2) {
+      score += 3;  // Multiple clusters = very suspicious
+    } else if (clusterCount === 1) {
+      score += 1;  // Single cluster = slightly suspicious
+    }
+  }
+
+  if (score >= NOISE_SCORE_THRESHOLD) {
+    return { ok: false, error: "內容疑似亂碼，請輸入有意義的文字" };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Validate title (for new threads)
+ */
+function validateTitle(title: string | undefined): NoiseResult {
+  if (!title) {
+    return { ok: true }; // title is optional for replies
+  }
+
+  const trimmed = title.trim();
+
+  // Check CJK content
+  const cjkCount = countCjkChars(trimmed);
+  if (cjkCount >= 2) {
+    return { ok: true }; // Valid CJK title
+  }
+
+  // For ASCII-only titles, apply noise check
+  if (cjkCount === 0 && trimmed.length < 3) {
+    return { ok: false, error: "標題過短" };
+  }
+
+  // Quick keyboard mash check for title
+  const keyboardMash = /(asdf|qwer|zxcv|dfasd)/i.test(trimmed);
+  const hasRepetition = /(.)\1{3,}/.test(trimmed);
+
+  if (keyboardMash || hasRepetition) {
+    return { ok: false, error: "標題疑似亂碼" };
+  }
+
+  // Check keyboard adjacency for ASCII-only titles
+  if (cjkCount === 0 && trimmed.length > 4) {
+    const adjacencyRatio = calcKeyboardAdjacencyRatio(trimmed);
+    const hasCommonWord = containsCommonEnglishWord(trimmed);
+
+    if (adjacencyRatio > 0.6 && !hasCommonWord) {
+      return { ok: false, error: "標題疑似亂碼" };
+    }
+  }
+
+  return { ok: true };
+}
+
 export type PostGuardResult =
   | { ok: true; content: string }
   | { ok: false; status: number; error: string };
@@ -75,8 +347,10 @@ function sanitizeEmbedTags(content: string): string {
 export async function checkCreatePost(input: {
   content: unknown;
   ipHash: string;
+  isReply?: boolean;
+  title?: string;
 }): Promise<PostGuardResult> {
-  const { content, ipHash } = input;
+  const { content, ipHash, isReply = false, title } = input;
 
   if (typeof content !== "string") {
     return { ok: false, status: 400, error: "content must be a string" };
@@ -94,6 +368,20 @@ export async function checkCreatePost(input: {
       status: 400,
       error: `content too long (max ${MAX_CONTENT_LENGTH})`,
     };
+  }
+
+  // === Anti-spam: Title validation (for new threads) ===
+  if (!isReply && title) {
+    const titleResult = validateTitle(title);
+    if (titleResult.ok === false) {
+      return { ok: false, status: 400, error: titleResult.error };
+    }
+  }
+
+  // === Anti-spam: Noise/gibberish detection ===
+  const noiseResult = detectNoise(normalized, isReply);
+  if (noiseResult.ok === false) {
+    return { ok: false, status: 400, error: noiseResult.error };
   }
 
   // Rate limiting (Redis-backed with in-memory fallback)

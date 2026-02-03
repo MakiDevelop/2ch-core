@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { getThreadById } from "../persistence/postgres";
 import fs from "fs";
 import path from "path";
@@ -146,7 +146,7 @@ export async function threadPageHandler(req: Request, res: Response) {
 export function threadPageMiddleware(
   req: Request,
   res: Response,
-  next: () => void
+  next: NextFunction
 ) {
   // 只處理 GET /posts/:id 路徑
   const match = req.path.match(/^\/posts\/(\d+)$/);

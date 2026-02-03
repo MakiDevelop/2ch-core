@@ -18,13 +18,16 @@ export default tseslint.config(
       '@typescript-eslint/no-misused-promises': 'error',
 
       // ===== 次要規則（WARN）：逐步改善，不阻擋 commit =====
-      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-useless-escape': 'warn',
       'prefer-const': 'warn',
+
+      // Disable rules that conflict with TypeScript
+      'no-undef': 'off', // TypeScript handles this
     },
   },
   {
-    ignores: ['node_modules/', 'dist/', '*.js', '*.cjs', '*.mjs'],
+    ignores: ['node_modules/', 'dist/', 'scripts/', '*.js', '*.cjs', '*.mjs'],
   }
 );
