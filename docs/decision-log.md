@@ -147,6 +147,41 @@ CREATE INDEX IF NOT EXISTS idx_posts_edit_token ON posts(id, edit_token_hash) WH
 
 ---
 
+## 2026-02-02: 重大事故 - async/await 遺漏導致發文功能故障 3 天
+
+**背景：** 用戶回報發文失敗，調查後發現 1/30 ~ 2/2 期間所有發文/回覆都回傳 500 錯誤
+
+**根本原因：**
+- commit `5401bf8` (2026-01-30) 將 `checkCreatePost` 改為 async 函數
+- 但呼叫端（`posts.ts`, `boards.ts`）沒有加上 `await`
+- 導致驗證邏輯收到 Promise 物件而非實際結果，所有發文都失敗
+
+**問題程式碼：**
+```typescript
+// 錯誤
+const check = checkCreatePost(content);  // 回傳 Promise
+
+// 正確
+const check = await checkCreatePost(content);  // 回傳實際結果
+```
+
+**影響：**
+- 36 次失敗請求，6 個不同 IP
+- 用戶資料無法恢復
+
+**修復：**
+- commit `90bd2ac`：補上缺少的 `await`
+- 新增道歉公告（顯示至 2/9）
+- 新增錯誤回報機制
+
+**教訓/開發規範：**
+1. ⚠️ **將函數改為 async 時，必須同時檢查所有呼叫端並加上 await**
+2. ⚠️ **修改共用函數後，必須測試所有使用該函數的流程**
+3. TypeScript 不會警告「呼叫 async 函數但沒 await」，需靠人工或 lint 規則檢查
+4. 考慮加入 ESLint 規則：`@typescript-eslint/no-floating-promises`
+
+---
+
 ## 記錄守則提醒
 
 > **Claude 必須：**
