@@ -1,7 +1,13 @@
 {
   "scripts": {
     "dev": "npx tsx src/main.ts",
-    "start": "npx tsx src/main.ts"
+    "start": "npx tsx src/main.ts",
+    "lint": "eslint \"src/**/*.ts\" --cache",
+    "lint:fix": "eslint \"src/**/*.ts\" --cache --fix",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.ts": "eslint --cache"
   },
   "dependencies": {
     "body-parser": "^2.2.1",
@@ -14,13 +20,20 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/body-parser": "^1.19.6",
     "@types/dockerode": "^4.0.0",
     "@types/express": "^5.0.6",
     "@types/ioredis": "^4.28.10",
     "@types/pg": "^8.16.0",
     "@types/safe-regex": "^1.1.6",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0"
   }
 }

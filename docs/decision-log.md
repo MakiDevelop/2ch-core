@@ -25,6 +25,41 @@
 
 ---
 
+## 2026-02-03: 引入 ESLint + Pre-commit 防止「修東壞西」
+
+**背景：**
+- 2026-02-02 事故：函數改 async 但呼叫端沒加 await，導致發文功能故障 3 天
+- 專案缺乏自動化檢查機制，容易「修東壞西」
+
+**選項：**
+1. 只靠人工 code review
+2. 引入 ESLint + TypeScript strict mode（一次大改）
+3. ESLint + Pre-commit，只檢查新改動的檔案（漸進式）
+
+**決策：** 選項 3 - ESLint + Pre-commit（漸進式）
+
+**實施內容：**
+- 安裝 ESLint 9 + typescript-eslint + Husky + lint-staged
+- 核心規則設為 ERROR：`@typescript-eslint/no-floating-promises`、`no-misused-promises`
+- 次要規則設為 WARN：`no-unused-vars`、`no-explicit-any` 等
+- Pre-commit hook 只檢查 staged files，不阻擋舊債
+
+**修復的潛在問題：**
+- `boardPage.ts:146` - floating promise（無 .catch）
+- `threadPage.ts:172` - floating promise（無 .catch）
+
+**理由：**
+- Gemini + Codex 共識：靜態分析是成本最低但最有效的防護
+- 只檢查新改動，不影響開發速度
+- 漸進式改善，不用一次還清技術債
+
+**未來 TODO：**
+- [ ] 逐步開啟 TypeScript strict mode
+- [ ] 針對關鍵路徑加測試
+- [ ] CI 加入 lint 檢查
+
+---
+
 ## 2026-01-31: ERIKA 通訊管道選型 - LINE Bot
 
 **背景：** ERIKA 需要雙向通訊管道，用於通知人類決策點、接收指令

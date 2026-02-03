@@ -169,9 +169,14 @@ export function threadPageMiddleware(
   // 其他所有請求（瀏覽器、爬蟲）都返回 SSR HTML
   // 爬蟲（Twitterbot, facebookexternalhit, LINE）通常發送 Accept: */* 或不發送
   req.params = { id: match[1] };
-  threadPageHandler(req, res).then((handled) => {
-    if (!handled) {
-      next();
-    }
-  });
+  threadPageHandler(req, res)
+    .then((handled) => {
+      if (!handled) {
+        next();
+      }
+    })
+    .catch((err) => {
+      console.error('[threadPage] SSR error:', err);
+      next(err);
+    });
 }
