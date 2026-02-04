@@ -41,6 +41,7 @@ import {
   updateErrorReportHandler,
   // Post reports
   listPostReportsHandler,
+  updatePostReportHandler,
   sitemapHandler,
   robotsHandler,
   threadPageMiddleware,
@@ -103,6 +104,7 @@ app.patch("/admin/error-reports/:id", updateErrorReportHandler);
 
 // post reports API (貼文檢舉)
 app.get("/admin/reports", listPostReportsHandler);
+app.patch("/admin/reports/:id", updatePostReportHandler);
 
 // boards API
 app.get("/boards", listBoardsHandler);

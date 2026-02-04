@@ -319,10 +319,21 @@ export async function getReportCount(postId: number): Promise<number> {
  */
 export async function listPostReports(
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
+  status?: string
 ): Promise<{ items: any[]; total: number }> {
-  const countResult = await pool.query("SELECT COUNT(*) FROM post_reports");
+  const whereClause = status ? "WHERE r.status = $3" : "";
+  const countWhere = status ? "WHERE status = $1" : "";
+  const countParams: any[] = status ? [status] : [];
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*) FROM post_reports ${countWhere}`,
+    countParams
+  );
   const total = parseInt(countResult.rows[0].count, 10);
+
+  const params: any[] = [limit, offset];
+  if (status) params.push(status);
 
   const result = await pool.query(
     `SELECT
@@ -330,6 +341,7 @@ export async function listPostReports(
        r.post_id,
        r.reason_category,
        r.reason_text,
+       r.status AS report_status,
        r.created_at,
        p.title AS post_title,
        p.content AS post_content,
@@ -338,9 +350,10 @@ export async function listPostReports(
        p.moderation_status
      FROM post_reports r
      LEFT JOIN posts p ON p.id = r.post_id
+     ${whereClause}
      ORDER BY r.created_at DESC
      LIMIT $1 OFFSET $2`,
-    [limit, offset]
+    params
   );
 
   return {
@@ -349,6 +362,7 @@ export async function listPostReports(
       postId: row.post_id,
       reasonCategory: row.reason_category,
       reasonText: row.reason_text,
+      status: row.report_status || "pending",
       createdAt: row.created_at,
       postTitle: row.post_title,
       postContent: row.post_content,
@@ -358,6 +372,17 @@ export async function listPostReports(
     })),
     total,
   };
+}
+
+export async function updatePostReportStatus(
+  id: number,
+  status: string
+): Promise<boolean> {
+  const result = await pool.query(
+    `UPDATE post_reports SET status = $1 WHERE id = $2`,
+    [status, id]
+  );
+  return (result.rowCount ?? 0) > 0;
 }
 
 /**
