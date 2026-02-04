@@ -315,6 +315,52 @@ export async function getReportCount(postId: number): Promise<number> {
 }
 
 /**
+ * List post reports with pagination
+ */
+export async function listPostReports(
+  limit: number = 50,
+  offset: number = 0
+): Promise<{ items: any[]; total: number }> {
+  const countResult = await pool.query("SELECT COUNT(*) FROM post_reports");
+  const total = parseInt(countResult.rows[0].count, 10);
+
+  const result = await pool.query(
+    `SELECT
+       r.id,
+       r.post_id,
+       r.reason_category,
+       r.reason_text,
+       r.created_at,
+       p.title AS post_title,
+       p.content AS post_content,
+       p.author_name,
+       p.status AS post_status,
+       p.moderation_status
+     FROM post_reports r
+     LEFT JOIN posts p ON p.id = r.post_id
+     ORDER BY r.created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+
+  return {
+    items: result.rows.map((row) => ({
+      id: row.id,
+      postId: row.post_id,
+      reasonCategory: row.reason_category,
+      reasonText: row.reason_text,
+      createdAt: row.created_at,
+      postTitle: row.post_title,
+      postContent: row.post_content,
+      authorName: row.author_name,
+      postStatus: row.post_status,
+      moderationStatus: row.moderation_status,
+    })),
+    total,
+  };
+}
+
+/**
  * Get moderation statistics
  */
 export async function getModerationStats(): Promise<ModerationStats> {

@@ -18,6 +18,7 @@ import {
   approvePost,
   rejectPost,
   getModerationStats,
+  listPostReports,
 } from "../service/moderationService";
 import {
   listCategories,
@@ -941,6 +942,50 @@ export async function listErrorReportsHandler(req: Request, res: Response) {
     });
   } catch (err) {
     console.error("[ERROR_REPORT] List error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+// ============================================
+// Post Reports (貼文檢舉)
+// ============================================
+
+/**
+ * GET /admin/reports
+ * 查看貼文檢舉列表（需要 admin 權限）
+ */
+export async function listPostReportsHandler(req: Request, res: Response) {
+  try {
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+    const authResult = checkAdminAuth(authHeader, ipHash);
+    if (!authResult.ok) {
+      res.status(authResult.status).json({ error: authResult.error });
+      return;
+    }
+
+    const limitParam = req.query?.limit;
+    const offsetParam = req.query?.offset;
+
+    const parsedLimit = typeof limitParam === "string" ? Number(limitParam) : NaN;
+    const parsedOffset = typeof offsetParam === "string" ? Number(offsetParam) : NaN;
+
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 100) : 50;
+    const offset = Number.isFinite(parsedOffset) ? Math.max(parsedOffset, 0) : 0;
+
+    const result = await listPostReports(limit, offset);
+
+    res.json({
+      items: result.items,
+      pagination: {
+        limit,
+        offset,
+        total: result.total,
+        hasMore: offset + result.items.length < result.total,
+      },
+    });
+  } catch (err) {
+    console.error("[REPORTS] List error:", err);
     res.status(500).json({ error: "internal server error" });
   }
 }

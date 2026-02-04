@@ -38,6 +38,8 @@ import {
   // Error reports
   createErrorReportHandler,
   listErrorReportsHandler,
+  // Post reports
+  listPostReportsHandler,
   sitemapHandler,
   robotsHandler,
   threadPageMiddleware,
@@ -96,6 +98,9 @@ app.delete("/admin/badwords/:id", deleteBadwordHandler);
 
 // error reports API (錯誤回報)
 app.get("/admin/error-reports", listErrorReportsHandler);
+
+// post reports API (貼文檢舉)
+app.get("/admin/reports", listPostReportsHandler);
 
 // boards API
 app.get("/boards", listBoardsHandler);

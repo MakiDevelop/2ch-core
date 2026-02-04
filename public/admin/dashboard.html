@@ -453,6 +453,186 @@
             white-space: pre-wrap;
             word-break: break-all;
         }
+
+        /* Report items */
+        .report-list {
+            list-style: none;
+        }
+
+        .report-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .report-item:last-child {
+            border-bottom: none;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .report-category {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .cat-hate_speech { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+        .cat-spam { background: rgba(255,165,0,0.2); color: #ffa500; }
+        .cat-nsfw { background: rgba(255,105,180,0.2); color: #ff69b4; }
+        .cat-personal_attack { background: rgba(255,69,0,0.2); color: #ff4500; }
+        .cat-illegal { background: rgba(220,20,60,0.2); color: #dc143c; }
+        .cat-other, .cat-post_failure, .cat-page_error, .cat-feature_bug, .cat-suggestion {
+            background: rgba(91,142,244,0.2); color: var(--accent-color);
+        }
+
+        .report-post-link {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-family: monospace;
+        }
+
+        .report-post-link:hover {
+            text-decoration: underline;
+        }
+
+        .report-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .report-content-preview {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            max-height: 60px;
+            overflow: hidden;
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .report-actions button {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid var(--border-primary);
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .report-actions button:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .report-actions .btn-reject {
+            border-color: var(--error-color);
+            color: var(--error-color);
+        }
+
+        .report-actions .btn-reject:hover {
+            background: rgba(255,107,107,0.1);
+        }
+
+        .report-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .status-pending_review { background: rgba(255,165,0,0.2); color: #ffa500; }
+        .status-clean { background: rgba(81,207,102,0.2); color: var(--success-color); }
+        .status-approved { background: rgba(81,207,102,0.2); color: var(--success-color); }
+        .status-rejected { background: rgba(255,107,107,0.2); color: var(--error-color); }
+        .status-unscanned { background: rgba(91,142,244,0.2); color: var(--accent-color); }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .pagination button {
+            padding: 6px 16px;
+            border: 1px solid var(--border-primary);
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .pagination .page-info {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Error report items */
+        .error-report-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .error-report-item:last-child {
+            border-bottom: none;
+        }
+
+        .error-report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .error-report-url {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .error-report-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+        }
+
+        .error-report-message {
+            font-size: 13px;
+            color: var(--error-color);
+            font-family: monospace;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -477,6 +657,8 @@
                 <button class="tab-btn active" onclick="switchTab('stats')">統計</button>
                 <button class="tab-btn" onclick="switchTab('threads')">討論串</button>
                 <button class="tab-btn" onclick="switchTab('mod')">管理</button>
+                <button class="tab-btn" onclick="switchTab('reports')">檢舉</button>
+                <button class="tab-btn" onclick="switchTab('errors')">回報</button>
             </div>
 
             <!-- Tab 1: Stats -->
@@ -568,6 +750,32 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Tab 4: Post Reports (檢舉) -->
+            <div id="tab-reports" class="tab-panel">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>貼文檢舉</h2>
+                        <button class="refresh-btn" onclick="loadPostReports()">重新整理</button>
+                    </div>
+                    <div id="reports-container">
+                        <div class="loading">載入中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: Error Reports (回報) -->
+            <div id="tab-errors" class="tab-panel">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>問題回報</h2>
+                        <button class="refresh-btn" onclick="loadErrorReports()">重新整理</button>
+                    </div>
+                    <div id="error-reports-container">
+                        <div class="loading">載入中...</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -597,6 +805,16 @@
                 if (threadsContainer.querySelector('.loading')) {
                     loadLatestThreads();
                     loadLatestRepliedThreads();
+                }
+            } else if (tabName === 'reports') {
+                const reportsContainer = document.getElementById('reports-container');
+                if (reportsContainer.querySelector('.loading')) {
+                    loadPostReports();
+                }
+            } else if (tabName === 'errors') {
+                const errorsContainer = document.getElementById('error-reports-container');
+                if (errorsContainer.querySelector('.loading')) {
+                    loadErrorReports();
                 }
             }
         }
@@ -946,6 +1164,221 @@
         document.getElementById('delete-reason').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') deletePost();
         });
+
+        // ========================================
+        // Post Reports (檢舉)
+        // ========================================
+        let reportsOffset = 0;
+        const reportsLimit = 20;
+
+        const categoryLabels = {
+            hate_speech: '仇恨言論',
+            spam: '廣告/詐騙',
+            nsfw: '不當內容',
+            personal_attack: '人身攻擊',
+            illegal: '違法內容',
+            other: '其他',
+        };
+
+        const statusLabels = {
+            unscanned: '未掃描',
+            clean: '正常',
+            pending_review: '待審核',
+            approved: '已核准',
+            rejected: '已拒絕',
+        };
+
+        async function loadPostReports(offset) {
+            const container = document.getElementById('reports-container');
+            if (typeof offset === 'number') {
+                reportsOffset = offset;
+            }
+
+            container.innerHTML = '<div class="loading">載入中...</div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/reports?limit=${reportsLimit}&offset=${reportsOffset}`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                const data = await res.json();
+                const items = data.items || [];
+                const pagination = data.pagination || {};
+
+                if (items.length === 0) {
+                    container.innerHTML = '<div class="empty">目前沒有檢舉記錄</div>';
+                    return;
+                }
+
+                let html = '<ul class="report-list">';
+                for (const item of items) {
+                    const catClass = 'cat-' + (item.reasonCategory || 'other');
+                    const catLabel = categoryLabels[item.reasonCategory] || item.reasonCategory;
+                    const statusClass = 'status-' + (item.moderationStatus || 'unscanned');
+                    const statusLabel = statusLabels[item.moderationStatus] || item.moderationStatus || '未知';
+                    const postDeleted = item.postStatus === 2;
+
+                    html += `
+                        <li class="report-item">
+                            <div class="report-header">
+                                <div>
+                                    <span class="report-category ${catClass}">${catLabel}</span>
+                                    <a href="/posts/${item.postId}" target="_blank" class="report-post-link">#${item.postId}</a>
+                                    ${postDeleted ? '<span style="color:var(--error-color);font-size:12px">（已刪除）</span>' : ''}
+                                    <span class="report-status ${statusClass}">${statusLabel}</span>
+                                </div>
+                                <span style="font-size:12px;color:var(--text-muted)">${formatTime(item.createdAt)}</span>
+                            </div>
+                            ${item.reasonText ? `<div class="report-text">理由：${escapeHtml(item.reasonText)}</div>` : ''}
+                            ${item.postContent ? `<div class="report-content-preview">${escapeHtml((item.postContent || '').substring(0, 150))}${(item.postContent || '').length > 150 ? '...' : ''}</div>` : ''}
+                            ${!postDeleted && item.moderationStatus === 'pending_review' ? `
+                                <div class="report-actions">
+                                    <button onclick="approveReportedPost(${item.postId})">核准</button>
+                                    <button class="btn-reject" onclick="rejectReportedPost(${item.postId})">刪除貼文</button>
+                                </div>
+                            ` : ''}
+                        </li>
+                    `;
+                }
+                html += '</ul>';
+
+                // Pagination
+                if (pagination.total > reportsLimit) {
+                    const currentPage = Math.floor(reportsOffset / reportsLimit) + 1;
+                    const totalPages = Math.ceil(pagination.total / reportsLimit);
+                    html += `
+                        <div class="pagination">
+                            <button ${reportsOffset <= 0 ? 'disabled' : ''} onclick="loadPostReports(${reportsOffset - reportsLimit})">上一頁</button>
+                            <span class="page-info">${currentPage} / ${totalPages}（共 ${pagination.total} 筆）</span>
+                            <button ${!pagination.hasMore ? 'disabled' : ''} onclick="loadPostReports(${reportsOffset + reportsLimit})">下一頁</button>
+                        </div>
+                    `;
+                } else {
+                    html += `<div class="pagination"><span class="page-info">共 ${pagination.total} 筆</span></div>`;
+                }
+
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<div class="loading">載入失敗</div>';
+            }
+        }
+
+        async function approveReportedPost(postId) {
+            if (!confirm(`核准貼文 #${postId}？（標記為正常）`)) return;
+            try {
+                const res = await fetch(`${API_BASE}/admin/moderation/posts/${postId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                if (res.ok) {
+                    loadPostReports(reportsOffset);
+                } else {
+                    const data = await res.json();
+                    alert(data.error || '操作失敗');
+                }
+            } catch (e) {
+                alert('連線失敗');
+            }
+        }
+
+        async function rejectReportedPost(postId) {
+            const reason = prompt(`刪除貼文 #${postId} 的理由：`);
+            if (reason === null) return;
+            try {
+                const res = await fetch(`${API_BASE}/admin/moderation/posts/${postId}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ reason: reason || '檢舉後刪除' })
+                });
+                if (res.ok) {
+                    loadPostReports(reportsOffset);
+                } else {
+                    const data = await res.json();
+                    alert(data.error || '操作失敗');
+                }
+            } catch (e) {
+                alert('連線失敗');
+            }
+        }
+
+        // ========================================
+        // Error Reports (問題回報)
+        // ========================================
+        let errorReportsOffset = 0;
+        const errorReportsLimit = 20;
+
+        const errorTypeLabels = {
+            post_failure: '發文失敗',
+            page_error: '頁面異常',
+            feature_bug: '功能異常',
+            suggestion: '建議',
+            other: '其他',
+        };
+
+        async function loadErrorReports(offset) {
+            const container = document.getElementById('error-reports-container');
+            if (typeof offset === 'number') {
+                errorReportsOffset = offset;
+            }
+
+            container.innerHTML = '<div class="loading">載入中...</div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/error-reports?limit=${errorReportsLimit}&offset=${errorReportsOffset}`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                const data = await res.json();
+                const reports = data.reports || [];
+                const pagination = data.pagination || {};
+
+                if (reports.length === 0) {
+                    container.innerHTML = '<div class="empty">目前沒有問題回報</div>';
+                    return;
+                }
+
+                let html = '';
+                for (const r of reports) {
+                    const typeLabel = errorTypeLabels[r.errorType] || r.errorType;
+                    const catClass = 'cat-' + (r.errorType || 'other');
+
+                    html += `
+                        <div class="error-report-item">
+                            <div class="error-report-header">
+                                <div>
+                                    <span class="report-category ${catClass}">${typeLabel}</span>
+                                    <span style="font-size:13px;color:var(--text-muted);margin-left:8px">#${r.id}</span>
+                                </div>
+                                <span style="font-size:12px;color:var(--text-muted)">${formatTime(r.createdAt)}</span>
+                            </div>
+                            ${r.errorMessage ? `<div class="error-report-message">${escapeHtml(r.errorMessage)}</div>` : ''}
+                            ${r.url ? `<div class="error-report-url">${escapeHtml(r.url)}</div>` : ''}
+                            ${r.userDescription ? `<div class="error-report-desc">${escapeHtml(r.userDescription)}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                // Pagination
+                if (pagination.total > errorReportsLimit) {
+                    const currentPage = Math.floor(errorReportsOffset / errorReportsLimit) + 1;
+                    const totalPages = Math.ceil(pagination.total / errorReportsLimit);
+                    html += `
+                        <div class="pagination">
+                            <button ${errorReportsOffset <= 0 ? 'disabled' : ''} onclick="loadErrorReports(${errorReportsOffset - errorReportsLimit})">上一頁</button>
+                            <span class="page-info">${currentPage} / ${totalPages}（共 ${pagination.total} 筆）</span>
+                            <button ${(errorReportsOffset + errorReportsLimit >= pagination.total) ? 'disabled' : ''} onclick="loadErrorReports(${errorReportsOffset + errorReportsLimit})">下一頁</button>
+                        </div>
+                    `;
+                } else {
+                    html += `<div class="pagination"><span class="page-info">共 ${pagination.total} 筆</span></div>`;
+                }
+
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<div class="loading">載入失敗</div>';
+            }
+        }
     </script>
 </body>
 </html>
