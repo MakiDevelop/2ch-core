@@ -633,6 +633,75 @@
             font-family: monospace;
             margin-top: 4px;
         }
+
+        /* Status filter buttons */
+        .status-filter {
+            display: flex;
+            gap: 4px;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--border-primary);
+            color: var(--text-secondary);
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .error-report-actions {
+            margin-top: 8px;
+        }
+
+        .error-report-actions button {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid var(--border-primary);
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .error-report-actions button:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .error-report-actions .btn-resolved {
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .error-status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+
+        .error-status-pending {
+            background: rgba(255,165,0,0.2);
+            color: #ffa500;
+        }
+
+        .error-status-resolved {
+            background: rgba(81,207,102,0.2);
+            color: var(--success-color);
+        }
     </style>
 </head>
 <body>
@@ -769,7 +838,14 @@
                 <div class="section">
                     <div class="section-header">
                         <h2>問題回報</h2>
-                        <button class="refresh-btn" onclick="loadErrorReports()">重新整理</button>
+                        <div class="header-controls">
+                            <div class="status-filter">
+                                <button class="filter-btn active" onclick="filterErrorReports('all')">全部</button>
+                                <button class="filter-btn" onclick="filterErrorReports('pending')">未處理</button>
+                                <button class="filter-btn" onclick="filterErrorReports('resolved')">已處理</button>
+                            </div>
+                            <button class="refresh-btn" onclick="loadErrorReports()">重新整理</button>
+                        </div>
                     </div>
                     <div id="error-reports-container">
                         <div class="loading">載入中...</div>
@@ -1308,6 +1384,7 @@
         // ========================================
         let errorReportsOffset = 0;
         const errorReportsLimit = 20;
+        let errorReportsStatusFilter = 'all';
 
         const errorTypeLabels = {
             post_failure: '發文失敗',
@@ -1317,6 +1394,17 @@
             other: '其他',
         };
 
+        function filterErrorReports(status) {
+            errorReportsStatusFilter = status;
+            errorReportsOffset = 0;
+
+            // Update filter button styles
+            document.querySelectorAll('.status-filter .filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            loadErrorReports(0);
+        }
+
         async function loadErrorReports(offset) {
             const container = document.getElementById('error-reports-container');
             if (typeof offset === 'number') {
@@ -1325,8 +1413,13 @@
 
             container.innerHTML = '<div class="loading">載入中...</div>';
 
+            let url = `${API_BASE}/admin/error-reports?limit=${errorReportsLimit}&offset=${errorReportsOffset}`;
+            if (errorReportsStatusFilter !== 'all') {
+                url += `&status=${errorReportsStatusFilter}`;
+            }
+
             try {
-                const res = await fetch(`${API_BASE}/admin/error-reports?limit=${errorReportsLimit}&offset=${errorReportsOffset}`, {
+                const res = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${adminToken}` }
                 });
                 const data = await res.json();
@@ -1334,7 +1427,8 @@
                 const pagination = data.pagination || {};
 
                 if (reports.length === 0) {
-                    container.innerHTML = '<div class="empty">目前沒有問題回報</div>';
+                    const filterText = errorReportsStatusFilter === 'pending' ? '未處理的' : errorReportsStatusFilter === 'resolved' ? '已處理的' : '';
+                    container.innerHTML = `<div class="empty">目前沒有${filterText}問題回報</div>`;
                     return;
                 }
 
@@ -1342,6 +1436,10 @@
                 for (const r of reports) {
                     const typeLabel = errorTypeLabels[r.errorType] || r.errorType;
                     const catClass = 'cat-' + (r.errorType || 'other');
+                    const status = r.status || 'pending';
+                    const statusLabel = status === 'resolved' ? '已處理' : '未處理';
+                    const statusClass = 'error-status-' + status;
+                    const isPending = status === 'pending';
 
                     html += `
                         <div class="error-report-item">
@@ -1349,12 +1447,19 @@
                                 <div>
                                     <span class="report-category ${catClass}">${typeLabel}</span>
                                     <span style="font-size:13px;color:var(--text-muted);margin-left:8px">#${r.id}</span>
+                                    <span class="error-status-badge ${statusClass}">${statusLabel}</span>
                                 </div>
                                 <span style="font-size:12px;color:var(--text-muted)">${formatTime(r.createdAt)}</span>
                             </div>
                             ${r.errorMessage ? `<div class="error-report-message">${escapeHtml(r.errorMessage)}</div>` : ''}
                             ${r.url ? `<div class="error-report-url">${escapeHtml(r.url)}</div>` : ''}
                             ${r.userDescription ? `<div class="error-report-desc">${escapeHtml(r.userDescription)}</div>` : ''}
+                            <div class="error-report-actions">
+                                ${isPending
+                                    ? `<button class="btn-resolved" onclick="toggleErrorReportStatus(${r.id}, 'resolved')">標記已處理</button>`
+                                    : `<button onclick="toggleErrorReportStatus(${r.id}, 'pending')">標記未處理</button>`
+                                }
+                            </div>
                         </div>
                     `;
                 }
@@ -1377,6 +1482,27 @@
                 container.innerHTML = html;
             } catch (e) {
                 container.innerHTML = '<div class="loading">載入失敗</div>';
+            }
+        }
+
+        async function toggleErrorReportStatus(reportId, newStatus) {
+            try {
+                const res = await fetch(`${API_BASE}/admin/error-reports/${reportId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.ok) {
+                    loadErrorReports(errorReportsOffset);
+                } else {
+                    const data = await res.json();
+                    alert(data.error || '操作失敗');
+                }
+            } catch (e) {
+                alert('連線失敗');
             }
         }
     </script>

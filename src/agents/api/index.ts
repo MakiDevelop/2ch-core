@@ -42,6 +42,7 @@ export {
   // Error reports
   createErrorReportHandler,
   listErrorReportsHandler,
+  updateErrorReportHandler,
   // Post reports
   listPostReportsHandler,
 } from "./admin";

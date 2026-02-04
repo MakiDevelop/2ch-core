@@ -9,6 +9,7 @@ import {
   listThreadsByLastReply,
   createErrorReport,
   listErrorReports,
+  updateErrorReportStatus,
 } from "../persistence/postgres";
 import { checkAdminAuth, checkDeleteReason } from "../guard/adminGuard";
 import {
@@ -930,7 +931,11 @@ export async function listErrorReportsHandler(req: Request, res: Response) {
     const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 100) : 50;
     const offset = Number.isFinite(parsedOffset) ? Math.max(parsedOffset, 0) : 0;
 
-    const result = await listErrorReports(limit, offset);
+    const statusFilter = req.query?.status as string | undefined;
+    const validStatuses = ["pending", "resolved"];
+    const status = statusFilter && validStatuses.includes(statusFilter) ? statusFilter : undefined;
+
+    const result = await listErrorReports(limit, offset, status);
 
     res.json({
       reports: result.reports,
@@ -942,6 +947,48 @@ export async function listErrorReportsHandler(req: Request, res: Response) {
     });
   } catch (err) {
     console.error("[ERROR_REPORT] List error:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * PATCH /admin/error-reports/:id
+ * 更新錯誤回報狀態（需要 admin 權限）
+ */
+export async function updateErrorReportHandler(req: Request, res: Response) {
+  try {
+    const reportId = Number(req.params.id);
+
+    if (!Number.isInteger(reportId) || reportId <= 0) {
+      res.status(400).json({ error: "invalid report id" });
+      return;
+    }
+
+    const ipHash = getIpHash(req);
+    const authHeader = req.headers.authorization;
+    const authResult = checkAdminAuth(authHeader, ipHash);
+    if (!authResult.ok) {
+      res.status(authResult.status).json({ error: authResult.error });
+      return;
+    }
+
+    const { status } = req.body;
+    const validStatuses = ["pending", "resolved"];
+    if (!status || !validStatuses.includes(status)) {
+      res.status(400).json({ error: "status must be 'pending' or 'resolved'" });
+      return;
+    }
+
+    const success = await updateErrorReportStatus(reportId, status);
+
+    if (!success) {
+      res.status(404).json({ error: "report not found" });
+      return;
+    }
+
+    res.json({ success: true, id: reportId, status });
+  } catch (err) {
+    console.error("[ERROR_REPORT] Update error:", err);
     res.status(500).json({ error: "internal server error" });
   }
 }

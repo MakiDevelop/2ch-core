@@ -874,6 +874,7 @@ export interface ErrorReport {
   ipHash: string | null;
   userDescription: string | null;
   requestBody: string | null;
+  status: string;
   createdAt: Date;
 }
 
@@ -912,20 +913,29 @@ export async function createErrorReport(input: {
     ipHash: row.ip_hash,
     userDescription: row.user_description,
     requestBody: row.request_body,
+    status: row.status || "pending",
     createdAt: row.created_at,
   };
 }
 
 export async function listErrorReports(
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
+  status?: string
 ): Promise<{ reports: ErrorReport[]; total: number }> {
-  const countResult = await pool.query("SELECT COUNT(*) FROM error_reports");
+  const whereClause = status ? "WHERE status = $3" : "";
+  const params: any[] = [limit, offset];
+  if (status) params.push(status);
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*) FROM error_reports ${whereClause}`,
+    status ? [status] : []
+  );
   const total = parseInt(countResult.rows[0].count, 10);
 
   const result = await pool.query(
-    `SELECT * FROM error_reports ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-    [limit, offset]
+    `SELECT * FROM error_reports ${whereClause} ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+    params
   );
 
   return {
@@ -938,8 +948,20 @@ export async function listErrorReports(
       ipHash: row.ip_hash,
       userDescription: row.user_description,
       requestBody: row.request_body,
+      status: row.status || "pending",
       createdAt: row.created_at,
     })),
     total,
   };
+}
+
+export async function updateErrorReportStatus(
+  id: number,
+  status: string
+): Promise<boolean> {
+  const result = await pool.query(
+    `UPDATE error_reports SET status = $1 WHERE id = $2`,
+    [status, id]
+  );
+  return (result.rowCount ?? 0) > 0;
 }
