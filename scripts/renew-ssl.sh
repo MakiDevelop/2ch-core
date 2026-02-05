@@ -30,8 +30,8 @@ cd /opt/2ch-core
 
 log_info "Checking SSL certificate renewal..."
 
-# Try to renew certificate
-docker compose -f docker-compose.deploy.yml run --rm certbot renew
+# Try to renew certificate (override entrypoint to avoid infinite loop from compose)
+docker compose -f docker-compose.deploy.yml run --rm --entrypoint "certbot" certbot renew
 
 # If renewal happened, reload nginx
 if [ $? -eq 0 ]; then

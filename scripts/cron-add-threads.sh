@@ -8,7 +8,7 @@
 set -euo pipefail
 
 LOCK_FILE="/tmp/2ch-cron-add-threads.lock"
-LOG_DIR="/root/.claude/logs/2ch-cron"
+LOG_DIR="$HOME/.claude/logs/2ch-cron"
 LOG_FILE="$LOG_DIR/add-threads-$(date +%Y%m%d-%H%M%S).log"
 PROJECT_DIR="/opt/2ch-core"
 DB_HOST="139.180.199.219"
