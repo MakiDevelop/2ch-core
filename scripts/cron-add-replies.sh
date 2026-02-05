@@ -42,6 +42,7 @@ claude -p \
   --dangerously-skip-permissions \
   --max-budget-usd 1.00 \
   --add-dir "$PROJECT_DIR" \
+  -- \
   "你現在在 $PROJECT_DIR 工作目錄。請執行 /add-replies skill。
 
 具體要求：

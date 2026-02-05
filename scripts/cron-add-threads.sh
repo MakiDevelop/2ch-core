@@ -35,6 +35,7 @@ claude -p \
   --dangerously-skip-permissions \
   --max-budget-usd 2.00 \
   --add-dir "$PROJECT_DIR" \
+  -- \
   "你現在在 $PROJECT_DIR 工作目錄。請執行 /add-threads skill。
 
 具體要求：
