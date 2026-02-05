@@ -33,7 +33,7 @@ find "$LOG_DIR" -name "add-threads-*.log" -mtime +30 -delete 2>/dev/null || true
 claude -p \
   --model sonnet \
   --dangerously-skip-permissions \
-  --max-budget-usd 2.00 \
+  --max-budget-usd 10.00 \
   --add-dir "$PROJECT_DIR" \
   -- \
   "你現在在 $PROJECT_DIR 工作目錄。請執行 /add-threads skill。

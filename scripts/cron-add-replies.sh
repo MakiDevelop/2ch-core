@@ -40,7 +40,7 @@ THREAD_COUNT=$((RANDOM % 11 + 5))
 claude -p \
   --model sonnet \
   --dangerously-skip-permissions \
-  --max-budget-usd 1.00 \
+  --max-budget-usd 5.00 \
   --add-dir "$PROJECT_DIR" \
   -- \
   "你現在在 $PROJECT_DIR 工作目錄。請執行 /add-replies skill。
