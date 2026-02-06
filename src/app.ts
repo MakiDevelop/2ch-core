@@ -48,6 +48,7 @@ import {
   boardPageMiddleware,
 } from "./agents/api";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
+import { csrfGuard } from "./middleware/csrfGuard";
 
 export const app = express();
 
@@ -62,6 +63,9 @@ app.use((req, res, next) => {
 
 // middleware: parse json body
 app.use(bodyParser.json());
+
+// SECURITY: CSRF protection for state-changing requests
+app.use(csrfGuard);
 
 // SSR: pages with dynamic OG meta tags (for social sharing)
 app.use(threadPageMiddleware);

@@ -8,6 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:post": "npx tsx scripts/test-post-guard.ts",
+    "migrate": "npx tsx db/migrate.ts",
     "precommit": "npm run lint && npm run typecheck",
     "prepare": "husky"
   },

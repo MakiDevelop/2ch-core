@@ -37,22 +37,8 @@
     <link rel="preload" href="/css/style.css" as="style">
     <link rel="preload" href="/js/thread.js?v=20260117d" as="script">
     <link rel="stylesheet" href="/css/style.css">
-    <!-- Apply theme immediately and prefetch data -->
-    <script>
-    (function(){
-        var theme = localStorage.getItem('theme');
-        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-        // Prefetch data
-        var id = location.pathname.match(/\/posts\/(\d+)/);
-        if(id) {
-            var jsonHeaders = {headers:{'Accept':'application/json'}};
-            window.__prefetchThread = fetch('/posts/'+id[1],jsonHeaders).then(function(r){return r.json()});
-            window.__prefetchReplies = fetch('/posts/'+id[1]+'/replies',jsonHeaders).then(function(r){return r.json()});
-        }
-    })();
-    </script>
+    <script src="/js/theme-init.js"></script>
+    <script src="/js/thread-prefetch.js"></script>
 </head>
 <body>
     <div class="container">
@@ -202,7 +188,7 @@ print("Hello, world")
         </div>
 
         <footer>
-            <p>&copy; 2026 2ch.tw - <a href="/">返回首頁</a> <span style="margin: 0 8px; color: #666;">|</span> <a href="javascript:void(0)" onclick="showReportProblemModal()" class="footer-report-link">回報問題</a></p>
+            <p>&copy; 2026 2ch.tw - <a href="/">返回首頁</a> <span style="margin: 0 8px; color: #666;">|</span> <a href="#" class="footer-report-link">回報問題</a></p>
         </footer>
     </div>
 
@@ -247,68 +233,7 @@ print("Hello, world")
     <script src="/js/bookmark.js?v=20260117d"></script>
     <!-- 延遲載入主要 JS -->
     <script src="/js/thread.js?v=20260117d" defer></script>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Mobile: Collapsible boards list
-        var boardsList = document.querySelector('.boards-list');
-        var boardsHeader = boardsList ? boardsList.querySelector('h2') : null;
-        if (boardsHeader) {
-            boardsHeader.addEventListener('click', function() {
-                boardsList.classList.toggle('expanded');
-            });
-        }
-
-        // Mobile tap toggle for syntax help
-        document.querySelectorAll('.syntax-help').forEach(function(el) {
-            el.addEventListener('click', function(e) {
-                if (e.target.classList.contains('help-tooltip-close')) {
-                    el.classList.remove('active');
-                    return;
-                }
-                e.stopPropagation();
-                el.classList.toggle('active');
-            });
-        });
-        document.querySelectorAll('.help-tooltip-close').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var syntaxHelp = btn.closest('.syntax-help');
-                if (syntaxHelp) syntaxHelp.classList.remove('active');
-            });
-        });
-        document.addEventListener('click', function() {
-            document.querySelectorAll('.syntax-help.active').forEach(function(el) {
-                el.classList.remove('active');
-            });
-        });
-
-        // Theme toggle
-        var themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', function() {
-                var currentTheme = document.documentElement.getAttribute('data-theme');
-                var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-theme', newTheme);
-                localStorage.setItem('theme', newTheme);
-            });
-        }
-
-        // Back to top button
-        var backToTop = document.getElementById('back-to-top');
-        if (backToTop) {
-            window.addEventListener('scroll', function() {
-                if (window.scrollY > 300) {
-                    backToTop.classList.add('visible');
-                } else {
-                    backToTop.classList.remove('visible');
-                }
-            });
-            backToTop.addEventListener('click', function() {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-        }
-    });
-    </script>
+    <script src="/js/page-common.js?v=20260206"></script>
     <!-- 錯誤回報 -->
     <script src="/js/error-report.js?v=20260202"></script>
     <!-- 公告系統 -->

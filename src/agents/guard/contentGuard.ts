@@ -3,10 +3,14 @@
  * Supports both database-driven config (dynamic) and static JSON fallback
  */
 
+import safeRegex from "safe-regex";
 import { getBadwordConfig, BadwordConfig } from "../service/badwordService";
 
 // Fallback to static config if database is not available
 import staticConfig from "../../config/badwords.json";
+
+// Cache validated patterns to avoid repeated safe-regex checks
+const validatedPatterns = new Map<string, RegExp | null>();
 
 export type ContentCheckResult = {
   flagged: boolean;
@@ -74,17 +78,37 @@ function checkContentWithConfig(
       }
     }
 
-    // Check patterns
+    // Check patterns (with ReDoS protection)
     if (categoryConfig.patterns) {
       for (const pattern of categoryConfig.patterns) {
         try {
-          const regex = new RegExp(pattern, "gi");
-          if (regex.test(content) || regex.test(normalized)) {
+          // Use cached validation result
+          let regex = validatedPatterns.get(pattern);
+          if (regex === undefined) {
+            // First time seeing this pattern: validate safety
+            if (!safeRegex(pattern)) {
+              console.warn(`[CONTENT-GUARD] Skipping unsafe regex pattern: ${pattern}`);
+              validatedPatterns.set(pattern, null);
+              continue;
+            }
+            regex = new RegExp(pattern, "gi");
+            validatedPatterns.set(pattern, regex);
+          }
+          if (regex === null) continue; // Previously marked unsafe
+
+          // Reset lastIndex for global regex reuse
+          regex.lastIndex = 0;
+          const matchContent = regex.test(content);
+          regex.lastIndex = 0;
+          const matchNormalized = regex.test(normalized);
+
+          if (matchContent || matchNormalized) {
             categoryMatched = true;
             matchedTerms.push(`[pattern: ${pattern}]`);
           }
         } catch (e) {
           console.error(`Invalid regex pattern: ${pattern}`, e);
+          validatedPatterns.set(pattern, null);
         }
       }
     }
