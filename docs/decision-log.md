@@ -25,6 +25,34 @@
 
 ---
 
+## 2026-02-06: 專案綜合審查 — 完成 11 項，6 項延後
+
+**背景：** 由三個角色（資深架構師、CTO、CISO）對 2ch-core 做全面審查，產出 17 項改善建議。
+
+**已完成（Phase 1 + Phase 2）：**
+- CSP unsafe-inline 移除、CSRF 防護、ReDoS 防護
+- 整合測試（69 tests）、DB migration runner idempotent
+- Embed URL 域名白名單、Admin audit log（badword CRUD）
+- Health readiness probe（/health/ready）
+- Error code 統一體系（HttpError + code）
+- Structured logging（pino）
+- ARCHITECTURE.md 改寫為實際架構
+
+**決策：剩餘 6 項延後處理**
+
+| 項目 | 優先級 | 延後理由 |
+|------|--------|----------|
+| 搜尋全文索引（tsvector/GIN） | 低 | 目前資料量小，效能無痛點 |
+| postgres.ts 拆分 | 觀察 | 重構型，目前結構可維護 |
+| 監控與告警（Grafana/Loki） | 中 | 需要額外基礎設施，非功能性 |
+| 前端靜態資源版本控制 | 低 | cache busting，優先級不高 |
+| Redis 密碼命令列曝光 | 低 | 改用 env_file，風險低（內網） |
+| Security.txt | 低 | 加靜態檔即可，隨時可做 |
+
+**理由：** 高優先 + 中優先項目已全數完成，剩餘皆為低優先或觀察級。PoC 階段優先推進功能，這些項目等需求出現或資料量成長時再處理。
+
+---
+
 ## 2026-02-03: 引入 ESLint + Pre-commit 防止「修東壞西」
 
 **背景：**
