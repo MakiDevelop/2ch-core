@@ -49,6 +49,8 @@ import {
 } from "./agents/api";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { csrfGuard } from "./middleware/csrfGuard";
+import { isDbAvailable } from "./agents/persistence/postgres";
+import { isRedisAvailable } from "./agents/persistence/redis";
 
 export const app = express();
 
@@ -71,9 +73,19 @@ app.use(csrfGuard);
 app.use(threadPageMiddleware);
 app.use(boardPageMiddleware);
 
-// health check
+// health check (liveness)
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
+});
+
+// readiness probe (checks DB + Redis)
+app.get("/health/ready", async (_req, res) => {
+  const [db, redis] = await Promise.all([isDbAvailable(), isRedisAvailable()]);
+  const ready = db; // DB is required, Redis is optional
+  res.status(ready ? 200 : 503).json({
+    status: ready ? "ready" : "not_ready",
+    checks: { db, redis },
+  });
 });
 
 // admin API (管理员功能)

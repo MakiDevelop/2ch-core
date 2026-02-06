@@ -1,175 +1,111 @@
-# Core Design Patterns
+# 2ch.tw 系統架構
 
-2ch.tw 採用 **Node.js + TypeScript** 作為核心服務技術，整體架構以「有狀態、事件驅動、可擴充」為目標。
+## 技術棧
 
-在實作過程中，核心邏輯主要圍繞三個設計模式：
-
-- **Strategy Pattern（策略模式）**
-- **Factory Pattern（工廠模式）**
-- **Observer Pattern（觀察者模式）**
-
-這三者共同構成系統的主要擴充與演進方式。
-
----
-
-## Strategy Pattern（策略模式）
-
-**用途：處理「規則會持續變動」的業務邏輯。**
-
-在 2ch.tw 中，許多行為在不同情境下會有不同規則，例如：
-
-- 不同板規的發文／回文限制
-- 不同使用者角色的權限判斷
-- 不同事件類型的處理邏輯
-- 同一操作在不同狀態下的行為差異
-
-這類邏輯不適合集中在大量 if/else 中。
-
-策略模式的做法是：
-
-- 定義行為介面（interface）
-- 將每一種規則實作成獨立策略
-- 在執行階段選擇適當策略
-
-好處是新增規則時，只需新增策略實作，不需修改既有流程，降低風險並提高可維護性。
+- **Runtime**: Node.js + TypeScript
+- **Framework**: Express
+- **Database**: PostgreSQL（主資料庫）
+- **Cache**: Redis（rate limiting、快取、重複偵測）
+- **Logger**: pino（structured logging）
+- **Testing**: Vitest
 
 ---
 
-## Factory Pattern（工廠模式）
-
-**用途：集中「建立與選擇物件」的責任，避免流程中出現判斷邏輯。**
-
-在系統中，常見需要根據情境建立不同實例的地方包括：
-
-- 根據 request / context 建立對應的 handler
-- 根據事件類型選擇對應策略
-- 建立帶有狀態的 context（包含權限、連線、 emitter）
-
-工廠模式負責：
-
-- 根據輸入條件，回傳正確的實作
-- 將選擇邏輯集中管理
-- 保持主流程簡潔、可讀
-
-這讓業務流程只關心「做什麼」，而不是「用誰來做」。
-
----
-
-## Observer Pattern（觀察者模式）
-
-**用途：處理事件驅動系統中的非同步反應邏輯。**
-
-2ch.tw 的核心並非單純 request-response，而是大量事件流，例如：
-
-- 新文章建立
-- 新回文加入
-- 狀態變化（封鎖、解鎖、刪文）
-- 即時通知（SSE / 未來 WebSocket）
-
-觀察者模式的核心原則是：
-
-- 事件產生者不需要知道誰會處理事件
-- 不同 observer 可獨立訂閱與處理同一事件
-- 新行為可透過新增 observer 擴充，而非修改既有邏輯
-
-這種模式特別適合 Node.js 的 event loop 與長連線模型，能有效避免 busy waiting 與不必要的 CPU 消耗。
-
-在 Node.js 中，這種模式通常透過事件發射器（EventEmitter）、發佈/訂閱（pub/sub）、SSE 或 WebSocket 等方式實作。
-
----
-
-## Pattern Collaboration
-
-在 2ch.tw 中，三個模式的責任分工如下：
-
-- **Factory**：決定「現在該使用哪一個實作」
-- **Strategy**：定義「在這個情境下要怎麼做」
-- **Observer**：負責「事件發生後要如何反應」
-
-這樣的組合能讓系統在功能增加、規則擴張、即時需求提升時，仍維持清晰的結構與可演進性。
-
----
-
-## Suggested Directory Structure
-
-以下為建議的目錄結構示意，對應三種設計模式與其責任邊界：
+## 目錄結構
 
 ```
 src/
-├─ core/
-│  ├─ context/
-│  │  └─ RequestContext.ts        # 使用者、權限、連線、emitter
+├─ agents/                    # 核心業務邏輯
+│  ├─ api/                    # HTTP Handler 層
+│  │  ├─ admin.ts             # 管理後台 API（刪文、鎖文、badword 管理等）
+│  │  ├─ posts.ts             # 發文、回文、編輯、搜尋
+│  │  ├─ boards.ts            # 看板列表、看板討論串
+│  │  ├─ sitemap.ts           # SEO: sitemap.xml, robots.txt
+│  │  ├─ threadPage.ts        # SSR: 討論串頁面（OG meta）
+│  │  ├─ boardPage.ts         # SSR: 看板頁面（OG meta）
+│  │  └─ health.ts            # Health check
 │  │
-│  ├─ strategy/
-│  │  ├─ interfaces/
-│  │  │  └─ PostStrategy.ts       # 策略介面定義
-│  │  ├─ BoardRuleStrategy.ts     # 板規策略
-│  │  ├─ PermissionStrategy.ts    # 權限策略
-│  │  └─ index.ts
+│  ├─ guard/                  # 輸入驗證與安全防護
+│  │  ├─ postGuard.ts         # 發文驗證（長度、spam、embed 白名單）
+│  │  ├─ adminGuard.ts        # Admin 認證（Bearer Token、timing-safe）
+│  │  └─ contentGuard.ts      # 內容審核（badword 檢測、ReDoS 防護）
 │  │
-│  ├─ factory/
-│  │  ├─ StrategyFactory.ts       # 根據 context 選擇策略
-│  │  ├─ HandlerFactory.ts        # 建立對應 handler
-│  │  └─ index.ts
+│  ├─ service/                # 業務服務層
+│  │  ├─ moderationService.ts # 內容審核流程（掃描、審核佇列）
+│  │  └─ badwordService.ts    # 關鍵字 CRUD
 │  │
-│  ├─ observer/
-│  │  ├─ PostCreatedObserver.ts   # 文章建立事件
-│  │  ├─ ReplyAddedObserver.ts    # 回文新增事件
-│  │  ├─ StateChangedObserver.ts  # 狀態變化事件
-│  │  └─ index.ts
+│  ├─ persistence/            # 資料存取層
+│  │  ├─ postgres.ts          # PostgreSQL 操作（CRUD、audit log）
+│  │  └─ redis.ts             # Redis 連線管理與健康檢查
 │  │
-│  └─ events/
-│     ├─ EventBus.ts              # 事件發佈／訂閱
-│     └─ EventTypes.ts
+│  ├─ domain/                 # Domain 模型（預留）
+│  └─ realtime/               # 即時功能（預留，SSE/WebSocket）
 │
-├─ api/
-│  └─ routes/
-│     └─ post.ts
+├─ middleware/                # Express Middleware
+│  ├─ csrfGuard.ts            # CSRF 防護（Origin/Referer 檢查）
+│  └─ errorHandler.ts         # 全域錯誤處理（HttpError → JSON）
 │
-└─ index.ts
+├─ config/                    # 設定
+│  ├─ env.ts                  # 環境變數
+│  └─ badwords.json           # 靜態 badword 設定
+│
+├─ utils/                     # 通用工具
+│  ├─ errors.ts               # HttpError 類別體系（含 error code）
+│  ├─ logger.ts               # Structured logger（pino）
+│  ├─ ip.ts                   # IP Hash 工具
+│  └─ rateLimiter.ts          # Rate limiting（Redis / in-memory fallback）
+│
+├─ types/                     # TypeScript 型別定義
+├─ app.ts                     # Express app 設定與路由註冊
+└─ main.ts                    # Server 啟動入口
 ```
-
-此結構刻意讓：
-
-- **Strategy** 專注於「規則與行為」
-- **Factory** 專注於「選擇與建立」
-- **Observer** 專注於「事件反應」
-
-避免責任混雜，並保留未來擴充 SSE / WebSocket 與更多事件的空間。
 
 ---
 
-## Why domain lives in `domains/` and not `shared/`
+## 請求流程
 
-在 2ch.tw 中，所有「業務語意」與「規則判斷」都必須存在於 `domains/` 之下，而不是放入 `shared/`。
+```
+Client Request
+  → nginx（SSL、CSP headers、靜態檔）
+    → Express app.ts
+      → Cache-Control middleware
+      → bodyParser.json()
+      → csrfGuard（攔截非法 Origin）
+      → SSR middleware（threadPage / boardPage）
+      → Route Handler（api/*.ts）
+        → Guard 驗證（guard/*.ts）
+        → Service 邏輯（service/*.ts）
+        → Persistence 操作（persistence/*.ts）
+      → errorHandler（統一錯誤回應）
+```
 
-這是一個刻意的架構選擇，其核心原因如下。
+---
 
-第一，**Domain 是系統的語言，不是工具程式碼**。  
-`domains/` 內的程式碼描述的是「發文是什麼」、「回文如何成立」、「板規如何影響行為」。  
-這些不是可重用 utility，而是 2ch.tw 這個產品本身的定義。
+## 安全機制
 
-第二，**Domain 不應依賴 transport 或 runtime 細節**。  
-Domain 邏輯不應知道請求是來自 HTTP、SSE、WebSocket，或未來的其他通道。  
-這些差異應由 `app/` 層負責轉接，而非滲入 domain。
+| 機制 | 實作位置 | 說明 |
+|------|----------|------|
+| CSRF 防護 | `middleware/csrfGuard.ts` | Origin/Referer 白名單，Bearer Token 跳過 |
+| CSP | nginx `.inc` snippets | 公開頁面禁止 inline script，admin 允許 |
+| Admin 認證 | `guard/adminGuard.ts` | Bearer Token + timing-safe comparison |
+| Embed 白名單 | `guard/postGuard.ts` | `<yt>` 限 YouTube，`<iu>` 限常見圖床 |
+| 內容審核 | `guard/contentGuard.ts` | badword 檢測 + ReDoS 防護（safe-regex） |
+| Rate Limiting | `utils/rateLimiter.ts` | Redis / in-memory fallback |
+| Audit Log | `persistence/postgres.ts` | moderation_logs 表，記錄所有管理操作 |
 
-第三，**shared 僅用於技術性共用，而非業務共用**。  
-`shared/` 的定位僅限於：
-- logger
-- error base class
-- infra adapter
-- 輔助型 helper
+---
 
-一旦業務規則進入 `shared/`，會導致 domain 語意被稀釋，並增加跨模組耦合風險。
+## Health Check
 
-第四，**domain-first 能確保系統可演進性**。  
-當功能增加、規則變複雜時，domain 會自然成為策略、工廠與觀察者模式的聚合點。  
-這能避免業務邏輯散落在 controller、route 或 adapter 中。
+- `GET /health` — Liveness probe（永遠回 200）
+- `GET /health/ready` — Readiness probe（檢查 DB + Redis 連線）
 
-總結來說：
+---
 
-- `domains/`：定義「系統是什麼」
-- `app/`：處理「系統如何被呼叫」
-- `shared/`：提供「技術性輔助能力」
+## 設計原則
 
-這樣的分層能確保 2ch.tw 在功能成長、即時需求增加、與團隊擴張時，仍維持清楚的責任邊界。
+1. **Guard → Service → Persistence 分層**：API handler 不直接操作 DB
+2. **Redis 可選**：所有 Redis 依賴有 in-memory fallback
+3. **Audit 完整**：所有管理操作（刪文、鎖文、badword CRUD）寫入 moderation_logs
+4. **Error Code 體系**：HttpError 支援 `code` 欄位，方便前端判斷
+5. **Structured Logging**：pino，支援 JSON 格式輸出

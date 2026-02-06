@@ -5,57 +5,62 @@
  *   throw new BadRequestError("Invalid input");
  *   throw new NotFoundError("Post not found");
  *   throw new UnauthorizedError("Invalid token");
+ *
+ * With error code:
+ *   throw new BadRequestError("content too long", "CONTENT_TOO_LONG");
  */
 
 export class HttpError extends Error {
   statusCode: number;
   isOperational: boolean;
+  code?: string;
 
-  constructor(statusCode: number, message: string, isOperational = true) {
+  constructor(statusCode: number, message: string, isOperational = true, code?: string) {
     super(message);
     this.name = this.constructor.name;
     this.statusCode = statusCode;
     this.isOperational = isOperational;
+    this.code = code;
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
 // 4xx Client Errors
 export class BadRequestError extends HttpError {
-  constructor(message = "Bad Request") {
-    super(400, message);
+  constructor(message = "Bad Request", code?: string) {
+    super(400, message, true, code);
   }
 }
 
 export class UnauthorizedError extends HttpError {
-  constructor(message = "Unauthorized") {
-    super(401, message);
+  constructor(message = "Unauthorized", code?: string) {
+    super(401, message, true, code);
   }
 }
 
 export class ForbiddenError extends HttpError {
-  constructor(message = "Forbidden") {
-    super(403, message);
+  constructor(message = "Forbidden", code?: string) {
+    super(403, message, true, code);
   }
 }
 
 export class NotFoundError extends HttpError {
-  constructor(message = "Not Found") {
-    super(404, message);
+  constructor(message = "Not Found", code?: string) {
+    super(404, message, true, code);
   }
 }
 
 export class ConflictError extends HttpError {
-  constructor(message = "Conflict") {
-    super(409, message);
+  constructor(message = "Conflict", code?: string) {
+    super(409, message, true, code);
   }
 }
 
 export class TooManyRequestsError extends HttpError {
   retryAfter?: number;
 
-  constructor(message = "Too Many Requests", retryAfter?: number) {
-    super(429, message);
+  constructor(message = "Too Many Requests", retryAfter?: number, code?: string) {
+    super(429, message, true, code);
     this.retryAfter = retryAfter;
   }
 }

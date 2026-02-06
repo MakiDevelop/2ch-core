@@ -288,32 +288,64 @@ export type PostGuardResult =
   | { ok: true; content: string }
   | { ok: false; status: number; error: string };
 
+// Domain whitelists for embed tags
+const YT_ALLOWED_HOSTS = new Set([
+  'www.youtube.com',
+  'youtube.com',
+  'youtu.be',
+  'www.youtube-nocookie.com',
+]);
+
+const IU_ALLOWED_HOSTS = new Set([
+  'i.imgur.com',
+  'imgur.com',
+  'i.redd.it',
+  'pbs.twimg.com',
+  'upload.wikimedia.org',
+  'i.pinimg.com',
+]);
+
 /**
- * Validate URL for <iu> and <yt> tags
- * Returns true if URL is safe, false otherwise
+ * Validate URL for embed tags (basic checks)
+ * Returns parsed URL if safe, null otherwise
  */
-function isValidEmbedUrl(url: string): boolean {
+function parseEmbedUrl(url: string): URL | null {
   const trimmed = url.trim();
 
   // Must start with https://
   if (!trimmed.startsWith('https://')) {
-    return false;
+    return null;
   }
 
   // Must not contain dangerous characters that could break out of attributes
-  // These chars should not appear in a properly encoded URL
   const dangerousChars = /[<>"'`\s\\]/;
   if (dangerousChars.test(trimmed)) {
-    return false;
+    return null;
   }
 
-  // Try to parse as URL to ensure it's valid
   try {
-    new URL(trimmed);
-    return true;
+    return new URL(trimmed);
   } catch {
-    return false;
+    return null;
   }
+}
+
+/**
+ * Validate URL for <yt> tags - YouTube only
+ */
+function isValidYtUrl(url: string): boolean {
+  const parsed = parseEmbedUrl(url);
+  if (!parsed) return false;
+  return YT_ALLOWED_HOSTS.has(parsed.hostname);
+}
+
+/**
+ * Validate URL for <iu> tags - whitelisted image hosts
+ */
+function isValidIuUrl(url: string): boolean {
+  const parsed = parseEmbedUrl(url);
+  if (!parsed) return false;
+  return IU_ALLOWED_HOSTS.has(parsed.hostname);
 }
 
 /**
@@ -323,21 +355,19 @@ function isValidEmbedUrl(url: string): boolean {
 function sanitizeEmbedTags(content: string): string {
   let result = content;
 
-  // Sanitize <iu> tags
+  // Sanitize <iu> tags - only whitelisted image hosts
   result = result.replace(/<iu>([\s\S]*?)<\/iu>/gi, (match, url) => {
-    if (isValidEmbedUrl(url)) {
-      return match; // Keep valid URLs as-is
+    if (isValidIuUrl(url)) {
+      return match;
     }
-    // Escape invalid URLs - convert to plain text
     return `[無效圖片連結]`;
   });
 
-  // Sanitize <yt> tags
+  // Sanitize <yt> tags - only YouTube domains
   result = result.replace(/<yt>([\s\S]*?)<\/yt>/gi, (match, url) => {
-    if (isValidEmbedUrl(url)) {
-      return match; // Keep valid URLs as-is
+    if (isValidYtUrl(url)) {
+      return match;
     }
-    // Escape invalid URLs - convert to plain text
     return `[無效影片連結]`;
   });
 

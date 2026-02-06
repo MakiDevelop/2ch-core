@@ -78,6 +78,18 @@ const pool = new Pool({
 });
 
 /**
+ * Check if PostgreSQL is reachable (for readiness probe)
+ */
+export async function isDbAvailable(): Promise<boolean> {
+  try {
+    await pool.query('SELECT 1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Generate a random 8-character alphanumeric token for post editing
  */
 function generateEditToken(): string {
@@ -604,7 +616,7 @@ export async function getBoardThreads(
 /**
  * 辅助函数：写入管理操作日志
  */
-async function logModerationAction(
+export async function logModerationAction(
   action: string,
   targetType: string,
   targetId: string,

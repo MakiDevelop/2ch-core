@@ -137,33 +137,44 @@ describe('postGuard', () => {
     });
 
     describe('Embed 標籤安全性', () => {
-      it('應該保留有效的 <iu> 標籤', async () => {
+      it('應該保留白名單 <iu> 標籤（imgur）', async () => {
         const result = await checkCreatePost({
-          content: '看這張圖 <iu>https://example.com/image.jpg</iu>',
+          content: '看這張圖 <iu>https://i.imgur.com/abc123.jpg</iu>',
           ipHash: testIpHash(),
         });
 
         expect(result.ok).toBe(true);
         if (result.ok) {
-          expect(result.content).toContain('<iu>https://example.com/image.jpg</iu>');
+          expect(result.content).toContain('<iu>https://i.imgur.com/abc123.jpg</iu>');
         }
       });
 
-      it('應該過濾無效的 <iu> URL (非 https)', async () => {
+      it('應該過濾非白名單域名的 <iu>', async () => {
         const result = await checkCreatePost({
-          content: '看這張圖 <iu>http://example.com/image.jpg</iu>',
+          content: '看這張圖 <iu>https://evil.com/image.jpg</iu>',
           ipHash: testIpHash(),
         });
 
         expect(result.ok).toBe(true);
         if (result.ok) {
           expect(result.content).toContain('[無效圖片連結]');
-          expect(result.content).not.toContain('http://example.com');
+          expect(result.content).not.toContain('evil.com');
+        }
+      });
+
+      it('應該過濾無效的 <iu> URL (非 https)', async () => {
+        const result = await checkCreatePost({
+          content: '看這張圖 <iu>http://i.imgur.com/image.jpg</iu>',
+          ipHash: testIpHash(),
+        });
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.content).toContain('[無效圖片連結]');
         }
       });
 
       it('應該過濾 XSS 攻擊 (javascript:)', async () => {
-        // 加上足夠的合法內容讓它通過 noise detection
         const result = await checkCreatePost({
           content: '這是一張圖片 <iu>javascript:alert(1)</iu> 請看',
           ipHash: testIpHash(),
@@ -173,6 +184,55 @@ describe('postGuard', () => {
         if (result.ok) {
           expect(result.content).toContain('[無效圖片連結]');
           expect(result.content).not.toContain('javascript:');
+        }
+      });
+
+      it('應該保留白名單 <yt> 標籤（YouTube）', async () => {
+        const result = await checkCreatePost({
+          content: '看影片 <yt>https://www.youtube.com/watch?v=abc123</yt>',
+          ipHash: testIpHash(),
+        });
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.content).toContain('<yt>https://www.youtube.com/watch?v=abc123</yt>');
+        }
+      });
+
+      it('應該保留 youtu.be 短網址', async () => {
+        const result = await checkCreatePost({
+          content: '看影片 <yt>https://youtu.be/abc123</yt>',
+          ipHash: testIpHash(),
+        });
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.content).toContain('<yt>https://youtu.be/abc123</yt>');
+        }
+      });
+
+      it('應該過濾非 YouTube 域名的 <yt>', async () => {
+        const result = await checkCreatePost({
+          content: '看影片 <yt>https://vimeo.com/12345</yt>',
+          ipHash: testIpHash(),
+        });
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.content).toContain('[無效影片連結]');
+          expect(result.content).not.toContain('vimeo.com');
+        }
+      });
+
+      it('應該保留 reddit 圖片', async () => {
+        const result = await checkCreatePost({
+          content: '看圖 <iu>https://i.redd.it/abc123.png</iu>',
+          ipHash: testIpHash(),
+        });
+
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+          expect(result.content).toContain('<iu>https://i.redd.it/abc123.png</iu>');
         }
       });
     });

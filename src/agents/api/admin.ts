@@ -10,6 +10,7 @@ import {
   createErrorReport,
   listErrorReports,
   updateErrorReportStatus,
+  logModerationAction,
 } from "../persistence/postgres";
 import { checkAdminAuth, checkDeleteReason } from "../guard/adminGuard";
 import {
@@ -639,6 +640,11 @@ export async function updateBadwordCategoryHandler(req: Request, res: Response) 
       return;
     }
 
+    await logModerationAction(
+      'badword_category_update', 'badword_category', String(categoryId),
+      ipHash, undefined, { weight },
+    );
+
     res.json({ success: true, categoryId, weight });
   } catch (err) {
     console.error("[BADWORD] Update category error:", err);
@@ -729,6 +735,11 @@ export async function createBadwordHandler(req: Request, res: Response) {
       return;
     }
 
+    await logModerationAction(
+      'badword_create', 'badword', String(result.badword?.id ?? ''),
+      ipHash, undefined, { categoryId, term: term?.trim(), pattern: pattern?.trim() },
+    );
+
     res.status(201).json({ success: true, badword: result.badword });
   } catch (err) {
     console.error("[BADWORD] Create error:", err);
@@ -771,6 +782,11 @@ export async function updateBadwordHandler(req: Request, res: Response) {
       return;
     }
 
+    await logModerationAction(
+      'badword_update', 'badword', String(badwordId),
+      ipHash, undefined, { term: term?.trim(), pattern: pattern?.trim(), isActive },
+    );
+
     res.json({ success: true, badwordId });
   } catch (err) {
     console.error("[BADWORD] Update error:", err);
@@ -806,6 +822,10 @@ export async function deleteBadwordHandler(req: Request, res: Response) {
       res.status(404).json({ error: "badword not found" });
       return;
     }
+
+    await logModerationAction(
+      'badword_delete', 'badword', String(badwordId), ipHash,
+    );
 
     res.json({ success: true, badwordId });
   } catch (err) {
@@ -860,6 +880,11 @@ export async function importBadwordsHandler(req: Request, res: Response) {
     }
 
     const result = await importFromConfig(config, ipHash);
+
+    await logModerationAction(
+      'badword_import', 'badword', 'bulk',
+      ipHash, undefined, { imported: result.imported, errors: result.errors },
+    );
 
     res.json({
       success: true,

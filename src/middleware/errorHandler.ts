@@ -31,15 +31,6 @@ export function errorHandler(
     return;
   }
 
-  // Handle TooManyRequestsError with retryAfter
-  if (err instanceof TooManyRequestsError && err.retryAfter) {
-    res.status(err.statusCode).json({
-      error: err.message,
-      retryAfter: err.retryAfter,
-    });
-    return;
-  }
-
   // For operational errors, return the message
   // For non-operational (programming errors), hide details in production
   const message =
@@ -47,7 +38,13 @@ export function errorHandler(
       ? err.message
       : "internal server error";
 
-  res.status(err.statusCode).json({ error: message });
+  const body: Record<string, unknown> = { error: message };
+  if (err.code) body.code = err.code;
+  if (err instanceof TooManyRequestsError && err.retryAfter) {
+    body.retryAfter = err.retryAfter;
+  }
+
+  res.status(err.statusCode).json(body);
 }
 
 /**
