@@ -65,11 +65,11 @@ async function main() {
   const t1 = await insertThread(
     'gossip',
     'えなこ年收破億日圓 Coser到底怎麼這麼賺',
-    'FF46剛結束 來八卦一下えなこ的收入\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/AKIBAYABAI_2022_Enako_%2852496435212%29.jpg/960px-AKIBAYABAI_2022_Enako_%2852496435212%29.jpg</iu>\n\n這女人連續三年年收超過一億日圓（約2300萬台幣）\n經紀人爆料年商其實是兩億 一半歸公司一半歸她\n\n收入來源：\n- 企業代言案 70%（同時接7-8家）\n- 寫真集自費出版 20%（一次Comiket賣一千萬日圓）\n- YouTube/直播/聲優/其他 10%\n\nhttps://www.nikkan-gendai.com/articles/view/geino/363993\n日刊Gendai有詳細報導\n\n重點是她錢包居然是用塑膠袋裝現金\n完全不帶皮夾 有夠反差www\n\ncoser真的能賺這麼多嗎 還是只有她這種頂層的才行',
+    'FF46剛結束 來八卦一下えなこ的收入\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/AKIBAYABAI_2022_Enako_(52496435212).jpg/960px-AKIBAYABAI_2022_Enako_(52496435212).jpg</iu>\n\n這女人連續三年年收超過一億日圓（約2300萬台幣）\n經紀人爆料年商其實是兩億 一半歸公司一半歸她\n\n收入來源：\n- 企業代言案 70%（同時接7-8家）\n- 寫真集自費出版 20%（一次Comiket賣一千萬日圓）\n- YouTube/直播/聲優/其他 10%\n\nhttps://www.nikkan-gendai.com/articles/view/geino/363993\n日刊Gendai有詳細報導\n\n重點是她錢包居然是用塑膠袋裝現金\n完全不帶皮夾 有夠反差www\n\ncoser真的能賺這麼多嗎 還是只有她這種頂層的才行',
     '名無しさん',
     29
   );
-  await insertReply(t1, '一億日圓只有她啦 一般coser能養活自己就偷笑了\nえなこ是cosplay界的大谷翔平 不能拿來當常態\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/AKIBAYABAI_2022_Enako_%2852496435317%29.jpg/960px-AKIBAYABAI_2022_Enako_%2852496435317%29.jpg</iu>\n這張也太美', '名無しさん', 27);
+  await insertReply(t1, '一億日圓只有她啦 一般coser能養活自己就偷笑了\nえなこ是cosplay界的大谷翔平 不能拿來當常態\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/AKIBAYABAI_2022_Enako_(52496435317).jpg/960px-AKIBAYABAI_2022_Enako_(52496435317).jpg</iu>\n這張也太美', '名無しさん', 27);
   await insertReply(t1, '>>1\n她已經不是單純的coser了吧\n上綜藝節目、配音、代言遊戲 根本全方位藝人\n只是起點是cosplay而已', '名無しさん', 25);
   await insertReply(t1, '塑膠袋裝現金也太好笑了\n年收一億的女人用塑膠袋www\n這反差萌也是她的賣點之一吧', '名無しさん', 23);
   await insertReply(t1, '台灣的coser有人能到這個等級嗎？\n感覺市場規模差太多 日本畢竟是動漫大國', '名無しさん', 21);
@@ -91,7 +91,7 @@ async function main() {
   await insertReply(t2, '她說最喜歡台灣的刈包但不敢吃臭豆腐\n很典型的日本人反應www', '名無しさん', 21);
   await insertReply(t2, '每次這種日本coser來台灣 男粉絲都暴動\n但她們回日本就忘了台灣粉絲了啦\n清醒一點好嗎', '名無しさん', 19);
   await insertReply(t2, '>>4\n人家都來第三次了還說忘記？\n而且她自己說SNS都有看台灣粉絲留言\n不要這麼酸好嗎', '名無しさん', 17);
-  await insertReply(t2, '桃羽Family也有來 cos絕區零的角色\n第一次海外參展就選台灣 表示台灣市場被重視了\n\n<iu>https://more-news.tw/wp-content/uploads/2026/02/%E6%97%A5%E6%9C%AC%E6%96%B0%E9%8A%B3Coser-3%E4%BA%BA%E7%B5%84_%E6%A1%83%E7%BE%BDFamily.webp</iu>\n桃羽Family三人組', '名無しさん', 15);
+  await insertReply(t2, '桃羽Family也有來 cos絕區零的角色\n第一次海外參展就選台灣 表示台灣市場被重視了\n\n<iu>https://more-news.tw/wp-content/uploads/2026/02/日本新銳Coser-3人組_桃羽Family.webp</iu>\n桃羽Family三人組', '名無しさん', 15);
 
   // ===== Thread 3: FF46偷拍爭議 =====
   const t3 = await insertThread(
@@ -113,12 +113,12 @@ async function main() {
   const t4 = await insertThread(
     'gossip',
     '伊織萌跟えなこ到底誰比較紅 八卦一下',
-    '趁FF46熱度還在 來戰一下\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/AKIBAYABAI_2022_Enako_%2852496435477%29.jpg/960px-AKIBAYABAI_2022_Enako_%2852496435477%29.jpg</iu>\n↑ えなこ\n\nえなこ：\n- 年收破億 商業價值最高\n- 男友是電競選手けんき（2021公開）\n- 日本內閣府Cool Japan大使\n- SNS粉絲290萬+\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/2/27/Moe_Iori_standing%2C_front_view_%2852710197695%29.jpg</iu>\n↑ 伊織萌\n\n伊織萌：\n- 角色還原度公認最強\n- 跟前男友交往10年被爆料\n- 親和力高 粉絲互動好\n- 被說是「更衣人偶」現實版\n\n兩個人路線完全不同\nえなこ走商業化藝人路線\n伊織萌走職人coser路線\n\n你們選誰？',
+    '趁FF46熱度還在 來戰一下\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/AKIBAYABAI_2022_Enako_(52496435477).jpg/960px-AKIBAYABAI_2022_Enako_(52496435477).jpg</iu>\n↑ えなこ\n\nえなこ：\n- 年收破億 商業價值最高\n- 男友是電競選手けんき（2021公開）\n- 日本內閣府Cool Japan大使\n- SNS粉絲290萬+\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/2/27/Moe_Iori_standing,_front_view_(52710197695).jpg</iu>\n↑ 伊織萌\n\n伊織萌：\n- 角色還原度公認最強\n- 跟前男友交往10年被爆料\n- 親和力高 粉絲互動好\n- 被說是「更衣人偶」現實版\n\n兩個人路線完全不同\nえなこ走商業化藝人路線\n伊織萌走職人coser路線\n\n你們選誰？',
     '名無しさん',
     25
   );
   await insertReply(t4, 'えなこ的商業成就無人能敵\n但如果純論cosplay的品質 伊織萌更強\n看你要比什麼', '名無しさん', 23);
-  await insertReply(t4, '>>1\n「更衣人偶現實版」太好笑了\n不過伊織萌確實是真愛玩家 她玩DOA跟FF不是裝的\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/8/87/Comic_Market_94_Day_1_Cosplayers_%2842244870270%29.jpg</iu>\nC94的時候拍的 角色還原度真的高', '名無しさん', 21);
+  await insertReply(t4, '>>1\n「更衣人偶現實版」太好笑了\n不過伊織萌確實是真愛玩家 她玩DOA跟FF不是裝的\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/8/87/Comic_Market_94_Day_1_Cosplayers_(42244870270).jpg</iu>\nC94的時候拍的 角色還原度真的高', '名無しさん', 21);
   await insertReply(t4, '不用比啦 兩個人都是頂層了\n硬要比的話 えなこ贏在知名度 伊織萌贏在專業度\n各有各的市場', '名無しさん', 19);
   await insertReply(t4, '伊織萌交往10年被爆料那件事\n日本網友說根本就是「更衣人偶」劇情重現\nhttps://www.sohu.com/a/526414809_100129097\n不過人家私生活管我們什麼事', '名無しさん', 17);
   await insertReply(t4, '>>4\n真的 每次有coser被爆戀愛 粉絲就崩潰\n人家也是普通人啊 交男朋友很正常好嗎', '名無しさん', 15);

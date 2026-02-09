@@ -81,11 +81,11 @@ async function main() {
   const t2 = await insertThread(
     'acg',
     'えなこ（Enako）FF46現場也太猛了吧',
-    'えなこ本人出現在花博的時候 整個場館瞬間暴動\n被粉絲圍成超大一圈 新聞說像「領域展開」真的沒誇張\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/AKIBAYABAI_2022_Enako_%2852496435212%29.jpg/960px-AKIBAYABAI_2022_Enako_%2852496435212%29.jpg</iu>\n（之前活動的照片 本人比這個更漂亮）\n\n日本最強coser果然不是叫假的\n年收過億日圓的女人 氣場完全不一樣\n\n有拍到現場照的嗎？我被擠到後面什麼都看不到',
+    'えなこ本人出現在花博的時候 整個場館瞬間暴動\n被粉絲圍成超大一圈 新聞說像「領域展開」真的沒誇張\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/AKIBAYABAI_2022_Enako_(52496435212).jpg/960px-AKIBAYABAI_2022_Enako_(52496435212).jpg</iu>\n（之前活動的照片 本人比這個更漂亮）\n\n日本最強coser果然不是叫假的\n年收過億日圓的女人 氣場完全不一樣\n\n有拍到現場照的嗎？我被擠到後面什麼都看不到',
     'えなこ推し',
     28
   );
-  await insertReply(t2, '有拍到！但是距離太遠 放大都糊了\n她那天cos的角色超還原 但人太多我看不清楚是哪個角色\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/AKIBAYABAI_2022_Enako_%2852496435317%29.jpg/960px-AKIBAYABAI_2022_Enako_%2852496435317%29.jpg</iu>\n放一張之前活動的 大家過過癮', '名無しさん', 26);
+  await insertReply(t2, '有拍到！但是距離太遠 放大都糊了\n她那天cos的角色超還原 但人太多我看不清楚是哪個角色\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/AKIBAYABAI_2022_Enako_(52496435317).jpg/960px-AKIBAYABAI_2022_Enako_(52496435317).jpg</iu>\n放一張之前活動的 大家過過癮', '名無しさん', 26);
   await insertReply(t2, '>>1\nえなこ的X也有發文感謝台灣粉絲\nhttps://x.com/enako_cos\n她說很開心能來台灣 下次還想再來', '名無しさん', 25);
   await insertReply(t2, '我朋友凌晨四點就去排了 排到第一批進場\n說近距離看本人 皮膚好到不像真人', '名無しさん', 23);
   await insertReply(t2, '>>3\n凌晨四點www 這就是愛吧', '名無しさん', 22);
@@ -98,13 +98,13 @@ async function main() {
   const t3 = await insertThread(
     'acg',
     '伊織萌（伊織もえ）FF46攤位心得 角色還原度神了',
-    '這次FF46伊織萌是第二天和第三天有攤位\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/2/27/Moe_Iori_standing%2C_front_view_%2852710197695%29.jpg</iu>\n\n本人的角色還原度真的超高 而且超親切\n簽名的時候會跟每個粉絲講幾句話 不會趕人\n聽說她是「日本人coser 15年來首次」參加台灣活動的等級\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/e/e6/FF41_Moe_Iori_talk_show_poster_20230818.jpg</iu>\n（這是FF41的海報 她之前就來過台灣了）\n\n有買到她寫真的嗎？',
+    '這次FF46伊織萌是第二天和第三天有攤位\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/2/27/Moe_Iori_standing,_front_view_(52710197695).jpg</iu>\n\n本人的角色還原度真的超高 而且超親切\n簽名的時候會跟每個粉絲講幾句話 不會趕人\n聽說她是「日本人coser 15年來首次」參加台灣活動的等級\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/e/e6/FF41_Moe_Iori_talk_show_poster_20230818.jpg</iu>\n（這是FF41的海報 她之前就來過台灣了）\n\n有買到她寫真的嗎？',
     '名無しさん',
     27
   );
   await insertReply(t3, '買到了！限定版寫真集超精美\n排了一個半小時 但拿到的時候手在抖', '名無しさん', 25);
   await insertReply(t3, '>>1\n伊織萌的特色就是親和力 不像有些coser有距離感\n她會笑著跟你聊天 雖然語言不通但感覺得到誠意', '名無しさん', 24);
-  await insertReply(t3, '她cos的DOA角色真的絕了 身材比例跟遊戲一模一樣\n難怪被說是角色還原度最高的coser之一\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/8/87/Comic_Market_94_Day_1_Cosplayers_%2842244870270%29.jpg</iu>\nC94的時候拍的', '名無しさん', 22);
+  await insertReply(t3, '她cos的DOA角色真的絕了 身材比例跟遊戲一模一樣\n難怪被說是角色還原度最高的coser之一\n\n<iu>https://upload.wikimedia.org/wikipedia/commons/8/87/Comic_Market_94_Day_1_Cosplayers_(42244870270).jpg</iu>\nC94的時候拍的', '名無しさん', 22);
   await insertReply(t3, '>>3\n她本來就很喜歡FF（Final Fantasy）和DOA\n不是那種為了流量才cos的 是真愛玩家', '名無しさん', 20);
   await insertReply(t3, '題外話 她的WorldCosplay頁面作品超多\nhttps://worldcosplay.net/en/member/moe_five\n每個角色都超用心', '名無しさん', 18);
   await insertReply(t3, '有人知道她下次還會來台灣嗎？\nFF47拜託再邀請她', 'もえ推し', 16);
