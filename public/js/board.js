@@ -1,7 +1,7 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260202';
+const APP_VERSION = '20260209';
 
 // Get board slug from URL
 const getBoardSlug = () => {
@@ -269,9 +269,10 @@ const showError = (message = '載入失敗') => {
     container.innerHTML = `
         <div style="padding: 48px 24px; text-align: center;">
             <p style="color: var(--text-secondary, #999); margin-bottom: 16px;">${escapeHtml(message)}</p>
-            <button onclick="loadBoard()" style="padding: 10px 20px; background: transparent; color: var(--accent, #5b8ef4); border: 1px solid var(--accent, #5b8ef4); border-radius: 8px; cursor: pointer; font-size: 15px;">重試</button>
+            <button class="retry-btn" style="padding: 10px 20px; background: transparent; color: var(--accent, #5b8ef4); border: 1px solid var(--accent, #5b8ef4); border-radius: 8px; cursor: pointer; font-size: 15px;">重試</button>
         </div>
     `;
+    container.querySelector('.retry-btn').addEventListener('click', loadBoard);
 };
 
 // Render threads list
@@ -334,21 +335,21 @@ const renderPagination = () => {
     let html = '';
 
     // Previous button
-    html += `<button class="pagination-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+    html += `<button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
 
     // Page numbers with ellipsis logic
     const pages = generatePageNumbers(currentPage, totalPages);
 
-    pages.forEach((page, index) => {
+    pages.forEach((page) => {
         if (page === '...') {
             html += `<span class="pagination-ellipsis">...</span>`;
         } else {
-            html += `<button class="pagination-btn ${page === currentPage ? 'active' : ''}" onclick="goToPage(${page})">${page}</button>`;
+            html += `<button class="pagination-btn ${page === currentPage ? 'active' : ''}" data-page="${page}">${page}</button>`;
         }
     });
 
     // Next button
-    html += `<button class="pagination-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
+    html += `<button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
 
     // Page info
     const startItem = (currentPage - 1) * PAGE_SIZE + 1;
@@ -356,6 +357,13 @@ const renderPagination = () => {
     html += `<span class="pagination-info">${startItem}-${endItem} / ${totalItems}</span>`;
 
     paginationContainer.innerHTML = html;
+
+    // Attach click handlers (CSP-safe, no inline onclick)
+    paginationContainer.querySelectorAll('[data-page]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            goToPage(parseInt(btn.getAttribute('data-page'), 10));
+        });
+    });
 };
 
 // Generate page numbers with ellipsis
@@ -593,10 +601,13 @@ const showErrorWithReport = (errorMsg, requestBody = null) => {
 
     postMessage.innerHTML = `
         ${escapeHtml(errorMsg)}
-        <button class="error-report-link" onclick="showErrorReportModal('${escapeHtml(errorMsg)}', ${requestBody ? `'${btoa(encodeURIComponent(JSON.stringify(requestBody)))}'` : 'null'})">回報問題</button>
+        <button class="error-report-link">回報問題</button>
     `;
     postMessage.className = 'message error';
     postMessage.hidden = false;
+    postMessage.querySelector('.error-report-link').addEventListener('click', function() {
+        showErrorReportModal(errorMsg, requestBody ? btoa(encodeURIComponent(JSON.stringify(requestBody))) : null);
+    });
 };
 
 // Error reporting - save to localStorage first, then try to send to backend

@@ -21,7 +21,7 @@
             <p><strong>很遺憾，那些內容沒有被儲存，我無法幫你們找回來。</strong></p>
             <p>這是一個很基本的程式錯誤，我沒有做好測試就上線，讓大家受到影響，這完全是我的責任。</p>
             <p>問題已經在今天（2/2）修復，現在發文功能正常運作。</p>
-            <p>我也加入了<a href="javascript:void(0)" onclick="showReportProblemModal()">錯誤回報功能</a>，以後如果再遇到任何問題，可以直接回報給我（頁尾也有連結）。</p>
+            <p>我也加入了<a href="#" class="announcement-report-link">錯誤回報功能</a>，以後如果再遇到任何問題，可以直接回報給我（頁尾也有連結）。</p>
             <p>如果你有任何想法或建議，歡迎到<a href="/boards/meta/threads">站務版</a>跟我說。</p>
             <p style="margin-top: 20px; text-align: right; color: var(--text-secondary);">再次說聲抱歉<br>— 站長</p>
         `
@@ -85,6 +85,17 @@
 
         // 綁定關閉事件
         document.getElementById('announcement-dismiss').addEventListener('click', dismissAnnouncement);
+
+        // 綁定回報連結
+        var reportLink = overlay.querySelector('.announcement-report-link');
+        if (reportLink) {
+            reportLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (typeof showReportProblemModal === 'function') {
+                    showReportProblemModal();
+                }
+            });
+        }
 
         // 點擊背景也可以關閉
         overlay.addEventListener('click', function(e) {

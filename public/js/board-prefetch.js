@@ -6,6 +6,6 @@
     var jsonHeaders = {headers:{'Accept':'application/json'}};
     if (slug) {
         window.__prefetchSort = sort;
-        window.__prefetchData = fetch('/boards/' + slug[1] + '/threads?sort=' + sort, jsonHeaders).then(function(r) { return r.json(); });
+        window.__prefetchData = fetch('/boards/' + slug[1] + '/threads?sort=' + sort + '&limit=20', jsonHeaders).then(function(r) { return r.json(); });
     }
 })();

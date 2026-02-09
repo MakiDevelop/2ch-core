@@ -974,9 +974,12 @@ const ErrorReporter = {
 const showErrorWithReport = (errorMsg, requestBody = null) => {
     replyMessage.innerHTML = `
         ${escapeHtml(errorMsg)}
-        <button class="error-report-link" onclick="showErrorReportModal('${escapeHtml(errorMsg)}', ${requestBody ? `'${btoa(encodeURIComponent(JSON.stringify(requestBody)))}'` : 'null'})">回報問題</button>
+        <button class="error-report-link">回報問題</button>
     `;
     replyMessage.className = 'message error';
+    replyMessage.querySelector('.error-report-link').addEventListener('click', function() {
+        showErrorReportModal(errorMsg, requestBody ? btoa(encodeURIComponent(JSON.stringify(requestBody))) : null);
+    });
 };
 
 // Show error report modal
