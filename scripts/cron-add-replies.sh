@@ -7,6 +7,12 @@
 # =============================================================================
 set -euo pipefail
 
+# 禁止 root 執行（root 會破壞 lock file 權限，導致 cronbot 後續全部失敗）
+if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+  echo "ERROR: 此腳本不可用 root 執行，請用 cronbot 用戶" >&2
+  exit 1
+fi
+
 LOCK_FILE="/tmp/2ch-cron-add-replies.lock"
 LOG_DIR="$HOME/.claude/logs/2ch-cron"
 LOG_FILE="$LOG_DIR/add-replies-$(date +%Y%m%d-%H%M%S).log"
@@ -15,8 +21,14 @@ DB_HOST="139.180.199.219"
 
 mkdir -p "$LOG_DIR"
 
+# 自我修復：若 lock file 被其他用戶建立（如 root），刪除後重建
+if [ -e "$LOCK_FILE" ] && [ ! -O "$LOCK_FILE" ]; then
+  echo "$(date): WARN: 清除非本用戶的 stale lock (owned by $(stat -c %U "$LOCK_FILE" 2>/dev/null || stat -f %Su "$LOCK_FILE" 2>/dev/null))" >> "$LOG_DIR/skipped.log"
+  rm -f "$LOCK_FILE"
+fi
+
 # 防止重複執行
-exec 200>"$LOCK_FILE"
+exec 200>"$LOCK_FILE" || { echo "$(date): ERROR: 無法開啟 lock file $LOCK_FILE" >&2; exit 1; }
 if ! flock -n 200; then
   echo "$(date): add-replies already running, skipping" >> "$LOG_DIR/skipped.log"
   exit 0
