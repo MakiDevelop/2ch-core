@@ -16,5 +16,5 @@ Disallow: /terms.html
 # 禁止索引 API endpoints
 Disallow: /health
 
-# Sitemap (如有需要可以在此處添加)
-# Sitemap: https://2ch.tw/sitemap.xml
+# Sitemap
+Sitemap: https://2ch.tw/sitemap.xml
