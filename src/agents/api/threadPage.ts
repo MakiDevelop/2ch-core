@@ -123,6 +123,35 @@ export async function threadPageHandler(req: Request, res: Response) {
         `<meta name="twitter:image" id="twitter-image" content="${ogImage}">`
       );
 
+    // 替換結構化資料（JSON-LD）
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "DiscussionForumPosting",
+      "headline": escapeHtml(thread.title || `討論串 #${id}`),
+      "text": escapeHtml(truncate(thread.content || "", 300)),
+      "url": ogUrl,
+      "datePublished": publishedTime || new Date().toISOString(),
+      "author": {
+        "@type": "Person",
+        "name": thread.authorName || "匿名",
+        "url": ogUrl
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "2ch.tw",
+        "url": `${siteUrl}/`
+      },
+      "interactionStatistic": {
+        "@type": "InteractionCounter",
+        "interactionType": "https://schema.org/CommentAction",
+        "userInteractionCount": thread.replyCount || 0
+      }
+    };
+    html = html.replace(
+      /<script type="application\/ld\+json" id="structured-data">[\s\S]*?<\/script>/,
+      `<script type="application/ld+json" id="structured-data">\n    ${JSON.stringify(structuredData, null, 4)}\n    </script>`
+    );
+
     // 已刪除的帖子加上 noindex
     if (isDeleted) {
       html = html.replace(
