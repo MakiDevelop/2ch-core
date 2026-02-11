@@ -103,10 +103,11 @@ const updateMetaTags = (thread, replyCount = 0) => {
             "headline": title,
             "text": contentPreview,
             "url": url,
-            "datePublished": thread.createdAt || '',
+            "datePublished": thread.createdAt ? new Date(thread.createdAt).toISOString() : new Date().toISOString(),
             "author": {
                 "@type": "Person",
-                "name": thread.authorName || "匿名"
+                "name": thread.authorName || "匿名",
+                "url": url
             },
             "publisher": {
                 "@type": "Organization",
