@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { getThreadById } from "../persistence/postgres";
+import { getThreadById, getReplies } from "../persistence/postgres";
 import fs from "fs";
 import path from "path";
 
@@ -123,8 +123,12 @@ export async function threadPageHandler(req: Request, res: Response) {
         `<meta name="twitter:image" id="twitter-image" content="${ogImage}">`
       );
 
+    // 取得回覆（用於結構化資料 comment 欄位，限制前 5 則）
+    const replies = isDeleted ? [] : await getReplies(id, 5, 0);
+    const activeReplies = replies.filter(r => r.status !== 2);
+
     // 替換結構化資料（JSON-LD）
-    const structuredData = {
+    const structuredData: Record<string, unknown> = {
       "@context": "https://schema.org",
       "@type": "DiscussionForumPosting",
       "headline": escapeHtml(thread.title || `討論串 #${id}`),
@@ -147,6 +151,21 @@ export async function threadPageHandler(req: Request, res: Response) {
         "userInteractionCount": thread.replyCount || 0
       }
     };
+
+    // 加入 comment 陣列（Google Search Console 要求）
+    if (activeReplies.length > 0) {
+      structuredData["comment"] = activeReplies.map(reply => ({
+        "@type": "Comment",
+        "text": escapeHtml(truncate(reply.content || "", 200)),
+        "dateCreated": reply.createdAt
+          ? new Date(reply.createdAt).toISOString()
+          : undefined,
+        "author": {
+          "@type": "Person",
+          "name": reply.authorName || "匿名"
+        }
+      }));
+    }
     html = html.replace(
       /<script type="application\/ld\+json" id="structured-data">[\s\S]*?<\/script>/,
       `<script type="application/ld+json" id="structured-data">\n    ${JSON.stringify(structuredData, null, 4)}\n    </script>`
