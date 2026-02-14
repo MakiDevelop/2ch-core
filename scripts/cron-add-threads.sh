@@ -1,8 +1,8 @@
 #!/bin/bash
 # =============================================================================
-# [VPS Primary] Cron: /add-threads
-# 每 8 小時檢查並新增討論串
-# 排程：0 16,0,8 * * * (UTC) = 00:00, 08:00, 16:00 UTC+8
+# [VPS Primary] Cron: /add-threads（樹洞模式 v1.0）
+# 每 12 小時新增 1 個討論串
+# 排程：0 4,16 * * * (UTC) = 12:00, 00:00 UTC+8（中午＋深夜）
 # 部署位置：n1k.tw (167.179.69.8)
 # =============================================================================
 set -euo pipefail
@@ -37,7 +37,7 @@ fi
 # 自動清理 stale lock
 trap 'flock -u 200' EXIT
 
-echo "$(date): Starting /add-threads cron job" >> "$LOG_FILE"
+echo "$(date): Starting /add-threads cron job (treehole mode)" >> "$LOG_FILE"
 
 # 清理 30 天以前的 log
 find "$LOG_DIR" -name "add-threads-*.log" -mtime +30 -delete 2>/dev/null || true
@@ -45,26 +45,26 @@ find "$LOG_DIR" -name "add-threads-*.log" -mtime +30 -delete 2>/dev/null || true
 claude -p \
   --model sonnet \
   --dangerously-skip-permissions \
-  --max-budget-usd 10.00 \
+  --max-budget-usd 5.00 \
   --add-dir "$PROJECT_DIR" \
   -- \
   "你現在在 $PROJECT_DIR 工作目錄。請執行 /add-threads skill。
 
-具體要求：
-1. 先 SSH 到 $DB_HOST 查詢各版目前的討論串數量
-2. 用 WebSearch 搜尋今天（$(date +%Y-%m-%d)）的台灣及國際時事
-3. 為以下每個版塊各建立至少 3 個新討論串：chat, news, tech, work, acg, life, gossip
-   - love 和 money 版各至少 2 個
-   - meta 版跳過
-4. 每個討論串配 4-8 則回覆
-5. 建立 seed script 後部署到 production
-6. 部署完成後驗證數量變化
+模式：樹洞模式 v1.0
+日期：$(date +%Y-%m-%d)
+時間：$(TZ=Asia/Taipei date +%H:%M)
 
-注意：
-- 標題和內容要基於真實搜尋到的新聞，不可捏造
-- 語氣像台灣年輕人在匿名論壇發文
-- 回覆要有多元觀點，不要全部贊同或反對
-- 時間分布要合理" \
+具體要求：
+1. 先 SSH 到 $DB_HOST 查詢各活躍版塊目前的討論串數量
+2. 只產 1 個討論串（不多不少）
+3. 隨機決定主題類型（50% 深夜壓力、30% 迷惘求助、15% 工作學業焦慮、5% 輕微摩擦）
+4. 不附帶回覆（讓 add-replies 自然補位）
+5. 內容 150-300 字，第一人稱，有猶豫、有留白
+6. 建立 seed script 後部署到 production
+7. 驗證
+
+禁止：列點、總結、太流暢、太專業、太理性收尾、挑釁
+目標版塊：chat 或 tech（隨機選一個）" \
   >> "$LOG_FILE" 2>&1
 
 EXIT_CODE=$?

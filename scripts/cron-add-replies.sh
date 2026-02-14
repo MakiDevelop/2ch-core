@@ -1,8 +1,8 @@
 #!/bin/bash
 # =============================================================================
-# [VPS Primary] Cron: /add-replies
-# 每小時檢查並補充回覆
-# 排程：30 * * * * (每小時 :30)
+# [VPS Primary] Cron: /add-replies（樹洞模式 v1.0）
+# 每 4 小時檢查並補位回覆（冷場救援）
+# 排程：30 2,6,10,14,18,22 * * * (UTC) = 10:30, 14:30, 18:30, 22:30, 02:30, 06:30 UTC+8
 # 部署位置：n1k.tw (167.179.69.8)
 # =============================================================================
 set -euo pipefail
@@ -37,44 +37,37 @@ fi
 # 自動清理 stale lock
 trap 'flock -u 200' EXIT
 
-# 隨機延遲 0-15 分鐘
-DELAY=$((RANDOM % 900))
+# 隨機延遲 0-10 分鐘
+DELAY=$((RANDOM % 600))
 echo "$(date): Sleeping ${DELAY}s before starting" >> "$LOG_FILE"
 sleep "$DELAY"
 
-echo "$(date): Starting /add-replies cron job" >> "$LOG_FILE"
+echo "$(date): Starting /add-replies cron job (treehole mode)" >> "$LOG_FILE"
 
 # 清理 30 天以前的 log
 find "$LOG_DIR" -name "add-replies-*.log" -mtime +30 -delete 2>/dev/null || true
 
-THREAD_COUNT=$((RANDOM % 11 + 5))
-
 claude -p \
   --model sonnet \
   --dangerously-skip-permissions \
-  --max-budget-usd 5.00 \
+  --max-budget-usd 3.00 \
   --add-dir "$PROJECT_DIR" \
   -- \
   "你現在在 $PROJECT_DIR 工作目錄。請執行 /add-replies skill。
 
-具體要求：
-1. SSH 到 $DB_HOST 查詢回覆數最少的討論串（取前 30 筆）
-2. 從中隨機選出約 ${THREAD_COUNT} 個討論串來補充回覆
-3. 讀取每個討論串的原文和現有回覆
-4. 每個討論串補充 1-5 則回覆（隨機決定數量，不要每串都一樣）
-5. 回覆內容必須：
-   - 與主串主題和現有回覆相關
-   - 有多元觀點（贊同、反對、補充、吐槽都可以）
-   - 適當使用 >>樓層號 引用（OP=1, 第一則回覆=2...）
-   - 語氣像台灣年輕人在匿名論壇
-   - 長度 1-3 行，自然不做作
-6. 建立 seed script 後部署到 production
-7. 部署完成後驗證回覆數變化
+模式：樹洞模式 v1.0
+日期：$(date +%Y-%m-%d)
 
-注意：
-- 如果某些串回覆已經很多（>15），可以跳過
-- 優先處理回覆數 0-5 的討論串
-- 不要為同一個串連續補太多回覆（看起來不自然）" \
+具體要求：
+1. SSH 到 $DB_HOST 查詢活躍板塊中「發文超過 4 小時仍無回覆」的討論串
+2. 對每個候選串，20% 機率跳過（保持自然冷場）
+3. 每串最多補 1 則回覆
+4. 回覆風格：重述感受、共感、延續提問、給空間
+5. 建立 seed script 後部署到 production
+6. 驗證
+
+禁止：列點、總結、說教、給解法清單、分析過度
+回覆長度：1-3 行，像在手機上隨手打的" \
   >> "$LOG_FILE" 2>&1
 
 EXIT_CODE=$?
