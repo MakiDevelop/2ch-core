@@ -62,7 +62,8 @@ const BOARD_BANNERS = {
     'acg': 'banner-acg',
     'life': 'banner-life',
     'gossip': 'banner-gossip',
-    'meta': 'banner-meta'
+    'meta': 'banner-meta',
+    'adult': 'banner-adult'
 };
 
 // Update breadcrumb and banner
