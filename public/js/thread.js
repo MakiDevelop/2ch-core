@@ -118,7 +118,8 @@ const updateMetaTags = (thread, replyCount = 0) => {
                 "@type": "InteractionCounter",
                 "interactionType": "https://schema.org/CommentAction",
                 "userInteractionCount": replyCount
-            }
+            },
+            "comment": []
         };
         structuredData.textContent = JSON.stringify(data);
     }

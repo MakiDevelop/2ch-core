@@ -152,20 +152,18 @@ export async function threadPageHandler(req: Request, res: Response) {
       }
     };
 
-    // 加入 comment 陣列（Google Search Console 要求）
-    if (activeReplies.length > 0) {
-      structuredData["comment"] = activeReplies.map(reply => ({
-        "@type": "Comment",
-        "text": escapeHtml(truncate(reply.content || "", 200)),
-        "dateCreated": reply.createdAt
-          ? new Date(reply.createdAt).toISOString()
-          : undefined,
-        "author": {
-          "@type": "Person",
-          "name": reply.authorName || "匿名"
-        }
-      }));
-    }
+    // 加入 comment 陣列（Google Search Console 要求，即使 0 回覆也必須給空陣列）
+    structuredData["comment"] = activeReplies.map(reply => ({
+      "@type": "Comment",
+      "text": escapeHtml(truncate(reply.content || "", 200)),
+      "dateCreated": reply.createdAt
+        ? new Date(reply.createdAt).toISOString()
+        : undefined,
+      "author": {
+        "@type": "Person",
+        "name": reply.authorName || "匿名"
+      }
+    }));
     html = html.replace(
       /<script type="application\/ld\+json" id="structured-data">[\s\S]*?<\/script>/,
       `<script type="application/ld+json" id="structured-data">\n    ${JSON.stringify(structuredData, null, 4)}\n    </script>`
