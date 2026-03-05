@@ -48,6 +48,9 @@ COPY db ./db
 # 复制静态文件
 COPY public ./public
 
+# 复制 cron 脚本
+COPY scripts ./scripts
+
 # 创建非 root 用户
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
