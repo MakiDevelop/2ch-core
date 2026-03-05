@@ -1,7 +1,35 @@
 // 2ch.tw Board Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260209';
+const APP_VERSION = '20260305';
+
+// Edit token auto-save (localStorage)
+const EditTokenStore = {
+    KEY: '2ch_edit_tokens',
+    TTL: 10 * 60 * 1000, // 10 minutes
+
+    save(postId, token) {
+        try {
+            const store = JSON.parse(localStorage.getItem(this.KEY) || '{}');
+            store[postId] = { token, savedAt: Date.now() };
+            // Purge expired entries
+            for (const [id, entry] of Object.entries(store)) {
+                if (Date.now() - entry.savedAt > this.TTL) delete store[id];
+            }
+            localStorage.setItem(this.KEY, JSON.stringify(store));
+        } catch (e) { /* ignore */ }
+    },
+
+    get(postId) {
+        try {
+            const store = JSON.parse(localStorage.getItem(this.KEY) || '{}');
+            const entry = store[postId];
+            if (!entry) return null;
+            if (Date.now() - entry.savedAt > this.TTL) return null;
+            return entry.token;
+        } catch (e) { return null; }
+    }
+};
 
 // Get board slug from URL
 const getBoardSlug = () => {
@@ -555,22 +583,16 @@ if (postForm) {
         postContent.value = '';
         charCount.textContent = '0 / 10000';
 
-        // Show edit token modal if available
-        if (data.editToken) {
-            showEditTokenModal(data.editToken, () => {
-                // After modal closes, reload the board
-                currentPage = 1;
-                loadBoard();
-            });
-        } else {
-            // Fallback if no edit token (shouldn't happen)
-            showMessage('發文成功！', 'success');
-            currentPage = 1;
-            setTimeout(() => {
-                loadBoard();
-                postMessage.textContent = '';
-            }, 1000);
+        // Auto-save edit token and show simple success message
+        if (data.editToken && data.id) {
+            EditTokenStore.save(data.id, data.editToken);
         }
+        showMessage('發文成功！10 分鐘內可點擊「編輯」修改內容。', 'success');
+        currentPage = 1;
+        setTimeout(() => {
+            loadBoard();
+            postMessage.textContent = '';
+        }, 1500);
 
     } catch (error) {
         console.error('Error posting:', error);

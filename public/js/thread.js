@@ -1,7 +1,35 @@
 // 2ch.tw Thread Detail Page Script
 
 // Version for cache busting
-const APP_VERSION = '20260202';
+const APP_VERSION = '20260305';
+
+// Edit token auto-save (localStorage)
+const EditTokenStore = {
+    KEY: '2ch_edit_tokens',
+    TTL: 10 * 60 * 1000, // 10 minutes
+
+    save(postId, token) {
+        try {
+            const store = JSON.parse(localStorage.getItem(this.KEY) || '{}');
+            store[postId] = { token, savedAt: Date.now() };
+            // Purge expired entries
+            for (const [id, entry] of Object.entries(store)) {
+                if (Date.now() - entry.savedAt > this.TTL) delete store[id];
+            }
+            localStorage.setItem(this.KEY, JSON.stringify(store));
+        } catch (e) { /* ignore */ }
+    },
+
+    get(postId) {
+        try {
+            const store = JSON.parse(localStorage.getItem(this.KEY) || '{}');
+            const entry = store[postId];
+            if (!entry) return null;
+            if (Date.now() - entry.savedAt > this.TTL) return null;
+            return entry.token;
+        } catch (e) { return null; }
+    }
+};
 
 // Copy share link to clipboard
 const copyShareLink = (postId, floor = null) => {
@@ -292,31 +320,64 @@ const showReportModal = (postId) => {
 
 // Show edit post modal
 const showEditPostModal = (postId, currentContent, onSuccess) => {
+    const savedToken = EditTokenStore.get(postId);
     const overlay = document.createElement('div');
     overlay.className = 'edit-post-modal-overlay';
 
-    overlay.innerHTML = `
-        <div class="edit-post-modal">
-            <h3>編輯貼文</h3>
-            <label for="edit-token-input">編輯密碼</label>
-            <input type="text" id="edit-token-input" placeholder="請輸入 8 位編輯密碼" maxlength="8">
-            <label for="edit-content-input">內容</label>
-            <textarea id="edit-content-input">${escapeHtml(currentContent)}</textarea>
-            <div class="edit-post-error" style="display: none;"></div>
-            <div class="edit-post-actions">
-                <button class="cancel-edit-btn">取消</button>
-                <button class="save-edit-btn">儲存</button>
-            </div>
-        </div>
-    `;
+    // Build modal content safely
+    const modal = document.createElement('div');
+    modal.className = 'edit-post-modal';
 
+    const title = document.createElement('h3');
+    title.textContent = '編輯貼文';
+    modal.appendChild(title);
+
+    let tokenInput = null;
+    if (!savedToken) {
+        const tokenLabel = document.createElement('label');
+        tokenLabel.setAttribute('for', 'edit-token-input');
+        tokenLabel.textContent = '編輯密碼';
+        modal.appendChild(tokenLabel);
+
+        tokenInput = document.createElement('input');
+        tokenInput.type = 'text';
+        tokenInput.id = 'edit-token-input';
+        tokenInput.placeholder = '請輸入 8 位編輯密碼';
+        tokenInput.maxLength = 8;
+        modal.appendChild(tokenInput);
+    }
+
+    const contentLabel = document.createElement('label');
+    contentLabel.setAttribute('for', 'edit-content-input');
+    contentLabel.textContent = '內容';
+    modal.appendChild(contentLabel);
+
+    const contentInput = document.createElement('textarea');
+    contentInput.id = 'edit-content-input';
+    contentInput.textContent = currentContent;
+    modal.appendChild(contentInput);
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'edit-post-error';
+    errorDiv.style.display = 'none';
+    modal.appendChild(errorDiv);
+
+    const actions = document.createElement('div');
+    actions.className = 'edit-post-actions';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'cancel-edit-btn';
+    cancelBtn.textContent = '取消';
+    actions.appendChild(cancelBtn);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'save-edit-btn';
+    saveBtn.textContent = '儲存';
+    actions.appendChild(saveBtn);
+
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
     document.body.appendChild(overlay);
-
-    const tokenInput = overlay.querySelector('#edit-token-input');
-    const contentInput = overlay.querySelector('#edit-content-input');
-    const errorDiv = overlay.querySelector('.edit-post-error');
-    const saveBtn = overlay.querySelector('.save-edit-btn');
-    const cancelBtn = overlay.querySelector('.cancel-edit-btn');
 
     // Cancel button
     cancelBtn.addEventListener('click', () => overlay.remove());
@@ -328,7 +389,7 @@ const showEditPostModal = (postId, currentContent, onSuccess) => {
 
     // Save button
     saveBtn.addEventListener('click', async () => {
-        const editToken = tokenInput.value.trim();
+        const editToken = savedToken || (tokenInput ? tokenInput.value.trim() : '');
         const content = contentInput.value.trim();
 
         if (!editToken) {
@@ -369,8 +430,12 @@ const showEditPostModal = (postId, currentContent, onSuccess) => {
         }
     });
 
-    // Focus on token input
-    tokenInput.focus();
+    // Focus on content if token is auto-filled, otherwise on token input
+    if (savedToken) {
+        contentInput.focus();
+    } else if (tokenInput) {
+        tokenInput.focus();
+    }
 };
 
 // Format edited time
@@ -895,19 +960,15 @@ replyForm.addEventListener('submit', async (e) => {
         replyContent.value = '';
         charCount.textContent = '0 / 10000';
 
-        // Show edit token modal if available
-        if (data.editToken) {
-            showEditTokenModal(data.editToken, () => {
-                loadThread();
-            });
-        } else {
-            // Fallback if no edit token
-            showMessage('回覆成功！', 'success');
-            setTimeout(() => {
-                loadThread();
-                replyMessage.textContent = '';
-            }, 1000);
+        // Auto-save edit token and show simple success message
+        if (data.editToken && data.id) {
+            EditTokenStore.save(data.id, data.editToken);
         }
+        showMessage('回覆成功！10 分鐘內可點擊「編輯」修改內容。', 'success');
+        setTimeout(() => {
+            loadThread();
+            replyMessage.textContent = '';
+        }, 1500);
 
     } catch (error) {
         console.error('Error posting reply:', error);
