@@ -1032,7 +1032,18 @@ replyForm.addEventListener('submit', async (e) => {
         if (data.editToken && data.id) {
             EditTokenStore.save(data.id, data.editToken);
         }
-        showMessage('回覆成功！10 分鐘內可點擊「編輯」修改內容。', 'success');
+
+        // 自動收藏：回覆過的串自動加入收藏（方便追蹤後續回覆）
+        if (typeof Bookmarks !== 'undefined' && !Bookmarks.has(parseInt(threadId))) {
+            const threadEl = document.querySelector('.thread-title .title-text');
+            const boardEl = document.querySelector('.post-board');
+            const threadTitle = threadEl ? threadEl.textContent : '討論串';
+            const boardSlug = boardEl ? boardEl.textContent.replace(/\//g, '') : '';
+            Bookmarks.add(parseInt(threadId), threadTitle, boardSlug, 0);
+            if (typeof updateBookmarkBadge === 'function') updateBookmarkBadge();
+        }
+
+        showMessage('回覆成功！已自動收藏此討論串，有新回覆時會通知你。', 'success');
         setTimeout(() => {
             loadThread();
             replyMessage.textContent = '';

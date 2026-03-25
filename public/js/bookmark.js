@@ -339,9 +339,35 @@ function _bmEscapeHtml(text) {
     return div.innerHTML;
 }
 
-// 頁面載入時初始化側邊欄
+// 背景刷新所有收藏的回覆數
+async function refreshBookmarkReplyCounts() {
+    const bookmarks = Bookmarks.getAll();
+    if (bookmarks.length === 0) return;
+
+    // 逐一 fetch（避免一次太多請求）
+    for (const item of bookmarks) {
+        try {
+            const res = await fetch(`/posts/${item.id}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!res.ok) continue;
+            const data = await res.json();
+            const replyCount = data.replyCount || 0;
+            if (replyCount !== item.currentReplies) {
+                Bookmarks.updateCurrentReplies(item.id, replyCount);
+            }
+        } catch (e) {
+            // 靜默失敗
+        }
+    }
+    updateBookmarkBadge();
+}
+
+// 頁面載入時初始化側邊欄 + 背景刷新
 document.addEventListener('DOMContentLoaded', () => {
     initBookmarkSidebar();
+    // 延遲 2 秒再刷新，避免影響主要內容載入
+    setTimeout(refreshBookmarkReplyCounts, 2000);
 });
 
 // Export for use in other scripts
