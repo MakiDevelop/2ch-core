@@ -10,6 +10,7 @@ import {
   searchHandler,
   editPostHandler,
   reportPostHandler,
+  reactPostHandler,
   listBoardsHandler,
   getBoardThreadsHandler,
   createBoardThreadHandler,
@@ -133,6 +134,7 @@ app.post("/posts", createPostHandler);
 app.get("/posts/:id/replies", getRepliesHandler);
 app.post("/posts/:id/replies", createReplyHandler);
 app.post("/posts/:id/report", reportPostHandler);
+app.post("/posts/:id/react", reactPostHandler);
 app.patch("/posts/:id", editPostHandler);
 app.get("/posts/:id", getThreadHandler);
 

@@ -874,6 +874,141 @@ export async function getSitemapData(): Promise<{
 }
 
 // ============================================
+// Reactions (推噓表態)
+// ============================================
+
+export type ReactionType = 'push' | 'boo';
+
+export type ReactionCounts = {
+  pushCount: number;
+  booCount: number;
+  userReaction: ReactionType | null;
+};
+
+/**
+ * 推噓表態（upsert：同 IP 切換或取消）
+ * - 同類型再按一次 = 取消
+ * - 不同類型 = 切換
+ */
+export async function toggleReaction(
+  postId: number,
+  ipHash: string,
+  reactionType: ReactionType,
+): Promise<{ action: 'added' | 'removed' | 'switched'; counts: ReactionCounts }> {
+  // 查現有表態
+  const existing = await pool.query(
+    `SELECT reaction_type FROM post_reactions WHERE post_id = $1 AND ip_hash = $2`,
+    [postId, ipHash],
+  );
+
+  let action: 'added' | 'removed' | 'switched';
+
+  if (existing.rows.length === 0) {
+    // 新增
+    await pool.query(
+      `INSERT INTO post_reactions (post_id, ip_hash, reaction_type) VALUES ($1, $2, $3)`,
+      [postId, ipHash, reactionType],
+    );
+    action = 'added';
+  } else if (existing.rows[0].reaction_type === reactionType) {
+    // 同類型 → 取消
+    await pool.query(
+      `DELETE FROM post_reactions WHERE post_id = $1 AND ip_hash = $2`,
+      [postId, ipHash],
+    );
+    action = 'removed';
+  } else {
+    // 不同類型 → 切換
+    await pool.query(
+      `UPDATE post_reactions SET reaction_type = $1, created_at = NOW() WHERE post_id = $2 AND ip_hash = $3`,
+      [reactionType, postId, ipHash],
+    );
+    action = 'switched';
+  }
+
+  const counts = await getReactionCounts(postId, ipHash);
+  return { action, counts };
+}
+
+/**
+ * 取得單篇文章的推噓數 + 當前用戶的表態
+ */
+export async function getReactionCounts(
+  postId: number,
+  ipHash?: string,
+): Promise<ReactionCounts> {
+  const result = await pool.query(
+    `SELECT
+      COALESCE(SUM(CASE WHEN reaction_type = 'push' THEN 1 ELSE 0 END), 0)::int as push_count,
+      COALESCE(SUM(CASE WHEN reaction_type = 'boo' THEN 1 ELSE 0 END), 0)::int as boo_count
+    FROM post_reactions
+    WHERE post_id = $1`,
+    [postId],
+  );
+
+  let userReaction: ReactionType | null = null;
+  if (ipHash) {
+    const userResult = await pool.query(
+      `SELECT reaction_type FROM post_reactions WHERE post_id = $1 AND ip_hash = $2`,
+      [postId, ipHash],
+    );
+    if (userResult.rows.length > 0) {
+      userReaction = userResult.rows[0].reaction_type;
+    }
+  }
+
+  return {
+    pushCount: result.rows[0].push_count,
+    booCount: result.rows[0].boo_count,
+    userReaction,
+  };
+}
+
+/**
+ * 批量取得多篇文章的推噓數（用於列表頁）
+ */
+export async function getReactionCountsBatch(
+  postIds: number[],
+): Promise<Map<number, { pushCount: number; booCount: number }>> {
+  if (postIds.length === 0) return new Map();
+
+  const result = await pool.query(
+    `SELECT
+      post_id,
+      COALESCE(SUM(CASE WHEN reaction_type = 'push' THEN 1 ELSE 0 END), 0)::int as push_count,
+      COALESCE(SUM(CASE WHEN reaction_type = 'boo' THEN 1 ELSE 0 END), 0)::int as boo_count
+    FROM post_reactions
+    WHERE post_id = ANY($1)
+    GROUP BY post_id`,
+    [postIds],
+  );
+
+  const map = new Map<number, { pushCount: number; booCount: number }>();
+  for (const row of result.rows) {
+    map.set(row.post_id, {
+      pushCount: row.push_count,
+      booCount: row.boo_count,
+    });
+  }
+  return map;
+}
+
+// ============================================
+// Daily Anonymous ID (每日匿名 ID)
+// ============================================
+
+/**
+ * 根據 IP hash + 日期產生每日匿名 ID
+ * 同一天同 IP 顯示相同 ID，隔天重置
+ */
+export function generateDailyId(ipHash: string, date?: Date): string {
+  const d = date || new Date();
+  const dateStr = d.toISOString().slice(0, 10); // YYYY-MM-DD
+  const hash = crypto.createHash('sha256').update(`${ipHash}:${dateStr}`).digest('hex');
+  return hash.substring(0, 8);
+}
+
+// ============================================
 // Error Reports (錯誤回報)
 // ============================================
 

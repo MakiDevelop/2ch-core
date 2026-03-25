@@ -3081,3 +3081,76 @@ footer {
     color: var(--link-color, #5b8ef4);
     text-decoration: underline;
 }
+
+/* ================================================
+   Daily Anonymous ID
+   ================================================ */
+.daily-id {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8em;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+    user-select: all;
+}
+
+/* ================================================
+   Reaction Buttons (推噓)
+   ================================================ */
+.reaction-buttons {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.reaction-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 8px;
+    border: 1px solid var(--border-primary);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85em;
+    line-height: 1.4;
+    transition: all 0.15s ease;
+}
+
+.reaction-btn:hover {
+    background: var(--bg-hover);
+}
+
+.reaction-btn .reaction-icon {
+    font-size: 0.75em;
+}
+
+.reaction-btn .reaction-count {
+    font-weight: 500;
+    min-width: 1ch;
+    text-align: center;
+}
+
+.push-btn:hover,
+.push-btn.active {
+    border-color: #4caf50;
+    color: #4caf50;
+    background: rgba(76, 175, 80, 0.08);
+}
+
+.boo-btn:hover,
+.boo-btn.active {
+    border-color: #f44336;
+    color: #f44336;
+    background: rgba(244, 67, 54, 0.08);
+}
+
+.reply-meta {
+    padding: 4px 0 0;
+    display: flex;
+    align-items: center;
+}

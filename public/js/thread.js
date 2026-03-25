@@ -614,6 +614,68 @@ const renderLinkPreview = (linkPreview) => {
     `;
 };
 
+// Render reaction buttons (push/boo)
+const renderReactionButtons = (postId, reactions) => {
+    if (!reactions) reactions = { pushCount: 0, booCount: 0 };
+    return `
+        <span class="reaction-buttons" data-post-id="${postId}">
+            <button class="reaction-btn push-btn" data-post-id="${postId}" data-type="push" title="推">
+                <span class="reaction-icon">&#9650;</span>
+                <span class="reaction-count">${reactions.pushCount || 0}</span>
+            </button>
+            <button class="reaction-btn boo-btn" data-post-id="${postId}" data-type="boo" title="噓">
+                <span class="reaction-icon">&#9660;</span>
+                <span class="reaction-count">${reactions.booCount || 0}</span>
+            </button>
+        </span>
+    `;
+};
+
+// Handle reaction click
+const handleReaction = async (postId, type) => {
+    try {
+        const response = await fetch(`${API_BASE}/posts/${postId}/react`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            console.error('Reaction failed:', err.error);
+            return;
+        }
+
+        const data = await response.json();
+
+        // Update button counts in DOM
+        const container = document.querySelector(`.reaction-buttons[data-post-id="${postId}"]`);
+        if (container) {
+            const pushCount = container.querySelector('.push-btn .reaction-count');
+            const booCount = container.querySelector('.boo-btn .reaction-count');
+            if (pushCount) pushCount.textContent = data.counts.pushCount;
+            if (booCount) booCount.textContent = data.counts.booCount;
+
+            // Toggle active state
+            const pushBtn = container.querySelector('.push-btn');
+            const booBtn = container.querySelector('.boo-btn');
+            pushBtn.classList.toggle('active', data.counts.userReaction === 'push');
+            booBtn.classList.toggle('active', data.counts.userReaction === 'boo');
+        }
+    } catch (err) {
+        console.error('Reaction error:', err);
+    }
+};
+
+// Delegate reaction clicks (works for dynamically rendered content)
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.reaction-btn');
+    if (!btn) return;
+    const postId = btn.dataset.postId;
+    const type = btn.dataset.type;
+    if (postId && type) handleReaction(postId, type);
+});
+
 // Load thread and replies
 const loadThread = async () => {
     try {
@@ -719,6 +781,7 @@ const renderOP = (thread) => {
             </h2>
             <div class="post-header">
                 <span class="post-author">${escapeHtml(thread.authorName || '名無しさん')}</span>
+                ${thread.dailyId ? `<span class="daily-id">ID:${thread.dailyId}</span>` : ''}
                 <span class="post-id share-id" data-post-id="${thread.id}" title="點擊複製分享連結">#${thread.id}</span>
                 <span class="post-time">${formatDate(thread.createdAt)}</span>
                 ${thread.board ? `<span class="post-board">/${thread.board.slug}/</span>` : ''}
@@ -729,6 +792,7 @@ const renderOP = (thread) => {
             </div>
             <div class="post-meta">
                 <span class="reply-count">${thread.replyCount || 0} 則回覆</span>
+                ${renderReactionButtons(thread.id, thread.reactions)}
                 ${isArchived ? '<span class="archived-notice">此討論串已達 999 樓上限，已封存無法回覆</span>' : ''}
                 <button class="report-post-btn op-report-btn" data-post-id="${thread.id}" title="檢舉此貼文">檢舉</button>
             </div>
@@ -817,6 +881,7 @@ const renderReplies = (replies) => {
             <div class="reply-header">
                 <span class="reply-number" data-floor="${floor}">${floor}樓</span>
                 <span class="reply-author">${escapeHtml(reply.authorName || '名無しさん')}</span>
+                ${reply.dailyId ? `<span class="daily-id">ID:${reply.dailyId}</span>` : ''}
                 <span class="reply-id share-id" data-post-id="${reply.id}" data-floor="${floor}" title="點擊複製分享連結">#${reply.id}</span>
                 <span class="reply-time">${formatDate(reply.createdAt)}</span>
                 ${formatEditedTime(reply.editedAt, reply.createdAt)}
@@ -826,6 +891,9 @@ const renderReplies = (replies) => {
             <div class="reply-content">
                 ${parseContent(reply.content)}
                 ${renderLinkPreview(reply.linkPreview)}
+            </div>
+            <div class="reply-meta">
+                ${renderReactionButtons(reply.id, reply.reactions)}
             </div>
         </div>
     `}).join('');

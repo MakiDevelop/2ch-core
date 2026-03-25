@@ -7,6 +7,10 @@ import {
   isThreadLocked,
   searchThreads,
   updatePost,
+  toggleReaction,
+  getReactionCounts,
+  getReactionCountsBatch,
+  generateDailyId,
 } from "../persistence/postgres";
 import { checkCreatePost, validateReplyReferences } from "../guard/postGuard";
 import { extractFirstUrl, fetchLinkPreview, type LinkPreview } from "../linkPreview";
@@ -121,8 +125,16 @@ export async function getThreadHandler(req: Request, res: Response) {
       return;
     }
 
-    // 如果討論串已刪除，清除敏感內容但保留結構
-    res.json(sanitizeDeletedPost(thread));
+    // 附加 dailyId 和 reactions
+    const sanitized = sanitizeDeletedPost(thread);
+    const ipHash = hashIp(getRealIp(req));
+    const reactions = await getReactionCounts(id, ipHash);
+
+    res.json({
+      ...sanitized,
+      dailyId: sanitized.status !== 2 ? generateDailyId(sanitized.ipHash, new Date(sanitized.createdAt)) : null,
+      reactions,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "internal server error" });
@@ -264,11 +276,27 @@ export async function getRepliesHandler(req: Request, res: Response) {
     // 获取回复列表
     const replies = await getReplies(threadId, limit, offset);
 
-    // 清理已刪除回覆的敏感內容
-    const sanitizedReplies = replies.map(reply => sanitizeDeletedPost(reply));
+    // 批量取得推噓數
+    const allPostIds = [threadId, ...replies.map(r => r.id)];
+    const reactionMap = await getReactionCountsBatch(allPostIds);
+
+    // 當前用戶 IP hash（用於 dailyId）
+    const currentIpHash = hashIp(getRealIp(req));
+
+    // 清理已刪除回覆的敏感內容 + 附加 dailyId 和 reactions
+    const sanitizedReplies = replies.map(reply => {
+      const sanitized = sanitizeDeletedPost(reply);
+      const reactions = reactionMap.get(reply.id) || { pushCount: 0, booCount: 0 };
+      return {
+        ...sanitized,
+        dailyId: sanitized.status !== 2 ? generateDailyId(sanitized.ipHash, new Date(sanitized.createdAt)) : null,
+        reactions,
+      };
+    });
 
     // 清理已刪除討論串的敏感內容
     const sanitizedThread = sanitizeDeletedPost(thread);
+    const threadReactions = reactionMap.get(threadId) || { pushCount: 0, booCount: 0 };
 
     res.json({
       thread: {
@@ -279,6 +307,8 @@ export async function getRepliesHandler(req: Request, res: Response) {
         replyCount: sanitizedThread.replyCount,
         deletedReason: sanitizedThread.deletedReason,
         deletedAt: sanitizedThread.deletedAt,
+        dailyId: sanitizedThread.status !== 2 ? generateDailyId(sanitizedThread.ipHash, new Date(sanitizedThread.createdAt)) : null,
+        reactions: threadReactions,
       },
       replies: sanitizedReplies,
       pagination: {
@@ -286,7 +316,37 @@ export async function getRepliesHandler(req: Request, res: Response) {
         offset,
         total: thread.replyCount,
       },
+      currentDailyId: generateDailyId(currentIpHash),
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "internal server error" });
+  }
+}
+
+/**
+ * POST /posts/:id/react
+ * Toggle push/boo reaction on a post
+ */
+export async function reactPostHandler(req: Request, res: Response) {
+  try {
+    const postId = Number(req.params.id);
+    const { type } = req.body;
+
+    if (!Number.isInteger(postId) || postId <= 0) {
+      res.status(400).json({ error: "invalid post id" });
+      return;
+    }
+
+    if (type !== 'push' && type !== 'boo') {
+      res.status(400).json({ error: "type 必須是 'push' 或 'boo'" });
+      return;
+    }
+
+    const ipHash = hashIp(getRealIp(req));
+
+    const result = await toggleReaction(postId, ipHash, type);
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "internal server error" });

@@ -8,6 +8,7 @@ export {
   searchHandler,
   editPostHandler,
   reportPostHandler,
+  reactPostHandler,
 } from "./posts";
 
 export {
