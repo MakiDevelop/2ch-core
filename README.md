@@ -1,5 +1,11 @@
 # 2ch-core
 
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![TypeScript](https://img.shields.io/badge/TypeScript-blue)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED)
+
+**Live: [2ch.tw](https://2ch.tw)**
+
 2ch-core 是 2ch.tw 的核心後端服務，負責匿名即時討論平台的主要業務邏輯與系統能力。  
 本專案刻意對齊日本 2ch / 5ch 的設計哲學：**簡單、線性、耐用**，以「可實際上線並長期演進」為第一優先。
 
@@ -196,4 +202,4 @@ npx tsx src/main.ts
 
 ## 授權
 
-尚未決定授權方式，暫不開放使用或散佈。
+MIT
