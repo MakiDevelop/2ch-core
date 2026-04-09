@@ -103,3 +103,14 @@ data/
 # =========================
 
 .mcp.json
+
+# Claude Code project config
+CLAUDE.md
+CLAUDE-*.md
+
+# Dev analysis files
+*解析
+*專案結構*
+*專案架構*
+目錄.md
+*_DEV_STATE.md

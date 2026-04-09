@@ -36,9 +36,11 @@ import {
 import { getIpHash } from "../../utils/ip";
 import os from "os";
 import Docker from "dockerode";
+import fs from "fs";
 
 // SECURITY FIX: Replaced shell exec with Docker SDK to prevent command injection
 const docker = new Docker();
+let dockerSocketWarningLogged = false;
 
 /**
  * POST /admin/posts/:id/delete
@@ -309,6 +311,28 @@ function formatUptime(seconds: number): string {
  * SECURITY FIX: Using Docker SDK instead of shell exec to prevent command injection
  */
 async function getContainerStatus(): Promise<any> {
+  // Graceful fallback when Docker socket is not mounted inside the container
+  const dockerSocketPath = process.env.DOCKER_HOST?.startsWith("unix://")
+    ? process.env.DOCKER_HOST.replace("unix://", "")
+    : (docker as any)?.modem?.socketPath || "/var/run/docker.sock";
+
+  const dockerSocketAvailable = Boolean(process.env.DOCKER_HOST) || fs.existsSync(dockerSocketPath);
+
+  if (!dockerSocketAvailable) {
+    if (!dockerSocketWarningLogged) {
+      // Log only once to avoid spam when running without docker.sock
+      console.warn(
+        `[DOCKER-STATUS] Skipping container status check: docker socket not found at ${dockerSocketPath}`
+      );
+      dockerSocketWarningLogged = true;
+    }
+
+    return {
+      available: false,
+      message: "docker socket not mounted in container; status check skipped",
+    };
+  }
+
   try {
     // Use Docker SDK to list containers with name filter
     const containers = await docker.listContainers({
@@ -331,6 +355,7 @@ async function getContainerStatus(): Promise<any> {
   } catch (error) {
     console.error('[DOCKER-STATUS] Error:', error);
     return {
+      available: false,
       error: "Docker not available or no permission",
       details: error instanceof Error ? error.message : 'Unknown error'
     };
