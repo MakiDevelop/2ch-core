@@ -48,9 +48,9 @@ echo "$(date): Starting /add-replies cron job (treehole mode)" >> "$LOG_FILE"
 find "$LOG_DIR" -name "add-replies-*.log" -mtime +30 -delete 2>/dev/null || true
 
 claude -p \
-  --model sonnet \
+  --model haiku \
   --dangerously-skip-permissions \
-  --max-budget-usd 3.00 \
+  --max-budget-usd 0.30 \
   --add-dir "$PROJECT_DIR" \
   -- \
   "你現在在 $PROJECT_DIR 工作目錄。請執行 /add-replies skill。
